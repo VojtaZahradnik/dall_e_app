@@ -6,6 +6,7 @@ from image_gen import ImageGen
 # TODO: logging
 # TODO: image name is right?
 # TODO: mega testing!
+# TODO: streamlit
 
 def load_config(path: str) -> dict:
     with open(path, 'r') as file:
