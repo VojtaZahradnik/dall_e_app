@@ -161,7 +161,7 @@ cython_debug/
 
 configs/creds.yaml
 *.ipynb
-generad_imgs
-photo_imgs
+dest
+source
 imgs
 .idea

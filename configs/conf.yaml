@@ -1,0 +1,7 @@
+api_name: "https://api.deepai.org/api/image-editor"
+
+source_file_type: "png"
+
+img_source: "../source"
+img_dest: "../dest"
+presets: "presets"
