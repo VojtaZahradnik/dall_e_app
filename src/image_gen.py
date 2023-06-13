@@ -51,4 +51,5 @@ class ImageGen:
         png_files = glob.glob(os.path.join(self.conf["img_source"],
                                            f'*.{self.conf["source_file_type"]}'))
         png_files.sort(key=os.path.getmtime)
+        print(png_files[-1])
         return png_files[-1]
