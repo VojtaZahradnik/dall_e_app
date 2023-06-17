@@ -1,84 +1,48 @@
-import os
-import sys
+from flask import Flask, render_template, request, url_for, redirect
 import yaml
 from image_gen import ImageGen
-import streamlit as st
-import streamlit.components.v1 as components
-from PIL import Image
+from tkinter.filedialog import askopenfilename
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+from printer import Printer
+from send_email import SendEmail
+from datetime import datetime
 
-# TODO: logging
-# TODO: image name is right?
-# TODO: Testing!
-# TODO: streamlit - doing
-# TODO: Přístup přes file browser i last image
-# TODO: Button poslat na mail
-
-image_urls = [
-    'https://images.saymedia-content.com/.image/t_share/MTkwODkzODUwNDE4OTQ3NjY5/everything-you-wanted-to-know-about-dall-e-2-the-amazing-ai-artist.jpg',
-    'https://miro.medium.com/v2/resize:fit:1024/1*e2-GB_Hdylczkj5PHh-lJQ.png',
-    'https://images.saymedia-content.com/.image/t_share/MTkwODkzODUwNDE4OTQ3NjY5/everything-you-wanted-to-know-about-dall-e-2-the-amazing-ai-artist.jpg',
-    'https://miro.medium.com/v2/resize:fit:1024/1*e2-GB_Hdylczkj5PHh-lJQ.png',
-    'https://miro.medium.com/v2/resize:fit:1024/1*e2-GB_Hdylczkj5PHh-lJQ.png',
-    'https://miro.medium.com/v2/resize:fit:1024/1*e2-GB_Hdylczkj5PHh-lJQ.png',
-    'https://miro.medium.com/v2/resize:fit:1024/1*e2-GB_Hdylczkj5PHh-lJQ.png',
-
-]
+app = Flask(__name__, template_folder='templates', static_folder='static')
+app.jinja_env.auto_reload = True
+app.config['SERVER_NAME'] = 'localhost:5000'
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 
-def init_st():
-    st.set_page_config(
-        page_icon="🧊",
-        layout="wide",
-        initial_sidebar_state="expanded")
+class SourceHandler(FileSystemEventHandler):
+    def __init__(self, app):
+        self.app = app
+        self.img_path = image_gen.filename
+        print(self.img_path)
+        with self.app.app_context():
+            render_template("index.html", name_source=self.img_path)
 
-    st.title("Enhance your photo with AI")
-
-    hide_img_fs = '''
-    <style>
-    button[title="View fullscreen"]{
-        visibility: hidden;}
-    a{visibility:hidden;}
-    body{background-color:white}
-    button {
-        min-width: 200px;
-    }
-    img {
-    max-width:200px}
-    
-    </style>
-    '''
+    def on_created(self, event):
+        self.img_path = event.src_path.replace("static/", "")
+        print(f"Got event for {self.img_path}")
+        with self.app.app_context():
+            print(f"Changing source image to {self.img_path}")
+            return render_template("index.html", name_source=self.img_path)
 
 
-    st.markdown(hide_img_fs, unsafe_allow_html=True)
+class DestHandler(FileSystemEventHandler):
+    def __init__(self, app):
+        self.app = app
+        self.img_path = image_gen.filename
+        with self.app.app_context():
+            render_template("index.html", name_source=self.img_path)
 
-    col1, col2, col3, col4 = st.columns([2,1,2,2], gap="small")
-    with col1:
-        image1 = Image.open("presets/template_1.png")
-        st.image(image1, use_column_width=True, width=150)
-        load_button = st.button("Upload")
-    with col2:
-        pass
-    with col3:
-        image2 = Image.open("presets/template_2.jpg")
-        st.image(image1, use_column_width=True, width=150)
-        gen_button = st.button("Generate")
-
-    with col4:
-        button1_clicked = st.button("Send to email")
-        button2_clicked = st.button("Print")
-
-    st.header("Presets:")
-    imageCarouselComponent = components.declare_component \
-        ("image-carousel-component", path="src/frontend/public")
-
-    # if button1_clicked:
-    #     image_gen.gen_image(prompt="blablabla")
-    #     image_gen.save_image()
-    #
-    # if button2_clicked:
-    #     print("button2 clicked")
-
-    selectedImageUrl = imageCarouselComponent(imageUrls=image_urls, height=200,)
+    def on_created(self, event):
+        self.img_path = event.src_path.replace("static/", "")
+        print(f"Got event for {self.img_path}")
+        with self.app.app_context():
+            print(f"Changing destination image to {self.img_path}")
+            return render_template("index.html", name_dest=self.img_path)
 
 
 def load_config(path: str) -> dict:
@@ -86,14 +50,87 @@ def load_config(path: str) -> dict:
         return yaml.safe_load(file)
 
 
-def main():
-    init_st()
+@app.route("/")
+def home():
+    return render_template('index.html',
+                           name_source=handler_source.img_path,
+                           name_dest=handler_dest.img_path)
+
+
+@app.route("/send_email", methods=["POST"])
+def send_email():
+    if image_gen.image:
+        email_sender.send_mail()
+        return render_template("index.html",
+                               name_source=handler_source.img_path,
+                               name_dest=handler_dest.img_path)
+
+
+@app.route("/print", methods=["POST"])
+def print_image():
+    if image_gen.image:
+        printer.print(image_gen.get_image())
+        return render_template("index.html",
+                               name_source=handler_source.img_path,
+                               name_dest=handler_dest.img_path)
+
+
+@app.route("/upload", methods=["POST"])
+def upload():
+    try:
+        filename = askopenfilename(initialdir=conf["img_source"],
+                                   title="Select a Image",
+                                   filetypes=[
+                                       ("image", ".jpeg"),
+                                       ("image", ".png"),
+                                       ("image", ".jpg"),
+                                   ]).split("static")[-1]
+    except AttributeError as e:
+        print(e)
+        filename = conf["img_placeholder"]
+    print(f"Selected image: {filename}")
+
+    image_gen.filename = filename
+    return render_template("index.html",
+                           name_source=filename,
+                           name_dest=handler_dest.img_path)
+
+
+@app.route("/generate", methods=["POST"])
+def generate():
+    image_gen.gen_image(prompt="Change my face into cyborg")
+    image_gen.save_image()
+    return render_template("index.html",
+                           name_source=handler_source.img_path,
+                           name_dest=handler_dest.img_path)
 
 
 if __name__ == "__main__":
     conf = load_config("configs/conf.yaml")
     creds = load_config("configs/creds.yaml")
+    print("Configs loaded")
 
     image_gen = ImageGen(key=creds["DEEPAI_API_KEY"], conf=conf)
+    print("Object from ImageGen class created")
 
-    sys.exit(main())
+    printer = Printer()
+    print("Object from Printer class created")
+
+    email_sender = SendEmail(email_from=conf["email_from"],
+                             email_to=conf["email_to"],
+                             date=datetime.now(),
+                             subject=conf["email_subject"],
+                             server=conf["email_server"])
+    print("Object from SendEmail class created")
+
+    observer_source = Observer()
+    handler_source = SourceHandler(app)
+    observer_source.schedule(handler_source, path=conf["img_source"], recursive=False)
+    observer_source.start()
+
+    observer_dest = Observer()
+    handler_dest = SourceHandler(app)
+    observer_dest.schedule(handler_dest, path=conf["img_dest"], recursive=False)
+    observer_dest.start()
+
+    app.run(debug=True)
