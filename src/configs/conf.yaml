@@ -8,6 +8,9 @@ presets: "static/presets"
 img_placeholder: "imgs/woman.png"
 
 email_from: "vojta.zahradnik@gmail.com"
-email_to: "vojta.zahradnik@gmail.com"
 email_subject: "Adastra AI"
-email_server: "127.0.0.1"
+email_mess: "Adastra AI generated image"
+
+gmail_scopes:
+    - "https://www.googleapis.com/auth/gmail.send"
+gmail_creds: "creds/creds.json"

@@ -71,7 +71,7 @@ class ImageGen:
         return png_files[-1]
 
     def get_image(self):
-        response = requests.get(self.image["output_ulr"])
+        response = requests.get(self.image["output_url"])
         return Image.open(BytesIO(response.content))
 
 

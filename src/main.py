@@ -5,8 +5,8 @@ from tkinter.filedialog import askopenfilename
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from printer import Printer
-from send_email import SendEmail
-from datetime import datetime
+from gmail_api import GmailAPI
+from image import Image
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.jinja_env.auto_reload = True
@@ -51,6 +51,7 @@ def load_config(path: str) -> dict:
 
 
 @app.route("/")
+@app.route("/home")
 def home():
     return render_template('index.html',
                            name_source=handler_source.img_path,
@@ -59,17 +60,21 @@ def home():
 
 @app.route("/send_email", methods=["POST"])
 def send_email():
-    if image_gen.image:
-        email_sender.send_mail()
-        return render_template("index.html",
-                               name_source=handler_source.img_path,
-                               name_dest=handler_dest.img_path)
+    if image_gen.image and request.form.get('email') != "":
+        print(f"Sending email to {request.form.get('email')} with image {handler_dest.img_path}")
+        email_sender.send_email(image_path=handler_dest.img_path,
+                                email_to=request.form.get('email'))
+    else:
+        print("Image is not generated or email is not provided")
+
+    return redirect(url_for('home'))
+
 
 
 @app.route("/print", methods=["POST"])
 def print_image():
     if image_gen.image:
-        printer.print(image_gen.get_image())
+        printer.print(image=image_gen.get_image())
         return render_template("index.html",
                                name_source=handler_source.img_path,
                                name_dest=handler_dest.img_path)
@@ -91,6 +96,7 @@ def upload():
     print(f"Selected image: {filename}")
 
     image_gen.filename = filename
+    handler_source.img_path = filename
     return render_template("index.html",
                            name_source=filename,
                            name_dest=handler_dest.img_path)
@@ -98,6 +104,7 @@ def upload():
 
 @app.route("/generate", methods=["POST"])
 def generate():
+    # TODO: condition to image exists
     image_gen.gen_image(prompt="Change my face into cyborg")
     image_gen.save_image()
     return render_template("index.html",
@@ -110,18 +117,17 @@ if __name__ == "__main__":
     creds = load_config("configs/creds.yaml")
     print("Configs loaded")
 
+    image_path = Image(placeholder=conf["img_placeholder"])
+    print("Object from Image class created")
+
     image_gen = ImageGen(key=creds["DEEPAI_API_KEY"], conf=conf)
     print("Object from ImageGen class created")
 
     printer = Printer()
     print("Object from Printer class created")
 
-    email_sender = SendEmail(email_from=conf["email_from"],
-                             email_to=conf["email_to"],
-                             date=datetime.now(),
-                             subject=conf["email_subject"],
-                             server=conf["email_server"])
-    print("Object from SendEmail class created")
+    email_sender = GmailAPI(conf=conf)
+    print("Object from GMailAPI class created")
 
     observer_source = Observer()
     handler_source = SourceHandler(app)

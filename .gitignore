@@ -165,3 +165,6 @@ dest
 source
 imgs
 .idea
+/src/GA_creds.json
+/src/creds/creds.json
+/src/creds/
