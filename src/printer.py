@@ -1,6 +1,6 @@
 import win32printing
 from PIL import Image
-from subprocess import CalledProcessError
+from subprocess import CalledProcessError, run
 
 PHYSICALWIDTH = 110
 PHYSICALHEIGHT = 111
@@ -13,4 +13,4 @@ class Printer:
 
     def print_image(self, img_path: str):
         try:
-            subprocess.run(["mspaint.exe","/pt", img_path])
+            run(["mspaint.exe","/pt", img_path])
