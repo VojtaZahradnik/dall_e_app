@@ -99,7 +99,7 @@ def delete():
 def send_to_printer():
     print("Printing")
     if image_gen.image:
-        print_image(image_path=image_gen.filename.replace("source_cleaned", "dest"))
+        print_image(image_path=handler_dest.img_path)
         print("Printing done")
         handler_source.img_path = conf["img_placeholder"]
         handler_dest.img_path = conf["img_placeholder"]
