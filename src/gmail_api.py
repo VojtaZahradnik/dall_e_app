@@ -9,11 +9,12 @@ from google.auth.transport.requests import Request
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 
+
 class GmailAPI:
 
     def __init__(self, conf):
         creds = None
-        token_path = os.path.join("src", "creds","token.json")
+        token_path = os.path.join("src", "creds", "token.json")
         if os.path.exists(token_path):
             creds = Credentials.from_authorized_user_file(token_path,
                                                           conf["gmail_scopes"])
@@ -38,7 +39,6 @@ class GmailAPI:
 
         self.message['subject'] = conf["email_subject"]
 
-
     def send_email(self, image_path: str, email_to: str):
 
         with open(image_path, 'rb') as image_file:
@@ -61,4 +61,3 @@ class GmailAPI:
         except TypeError as error:
             print("Not valid response")
             print(error)
-
