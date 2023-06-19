@@ -4,16 +4,16 @@ from image_gen import ImageGen
 from tkinter.filedialog import askopenfilename
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from printer import Printer
+# from printer import Printer
 from gmail_api import GmailAPI
 import csv
 import os
+import sys
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.jinja_env.auto_reload = True
 app.config['SERVER_NAME'] = 'localhost:5001'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
-
 
 class SourceHandler(FileSystemEventHandler):
     def __init__(self, app):
@@ -66,8 +66,8 @@ def home():
 def send_email():
     if image_gen.image and request.form.get('email') != "":
         print(f"Sending email to {request.form.get('email')} with image {handler_dest.img_path}")
-        email_sender.send_email(image_path=handler_dest.img_path,
-                                email_to=request.form.get('email'))
+        # email_sender.send_email(image_path=handler_dest.img_path,
+        #                         email_to=request.form.get('email'))
     else:
         print("Image is not generated or email is not provided")
 
@@ -135,14 +135,18 @@ def generate():
 
 
 if __name__ == "__main__":
-    conf = load_config("configs/conf.yaml")
-    creds = load_config("configs/creds.yaml")
-    print("Configs loaded")
+    try:
+        conf = load_config("src/configs/conf.yaml")
+        creds = load_config("src/configs/creds.yaml")
+        print("Configs loaded")
+    except FileNotFoundError as e:
+        print("Configs not founded")
+        print(e)
 
     image_gen = ImageGen(key=creds["DEEPAI_API_KEY"], conf=conf)
     print("Object from ImageGen class created")
 
-    printer = Printer()
+    # printer = Printer()
     print("Object from Printer class created")
 
     email_sender = GmailAPI(conf=conf)

@@ -14,8 +14,8 @@ class GmailAPI:
     def __init__(self, conf):
         creds = None
 
-        if os.path.exists('creds/token.json'):
-            creds = Credentials.from_authorized_user_file('creds/token.json', conf["gmail_scopes"])
+        if os.path.exists('src/creds/token.json'):
+            creds = Credentials.from_authorized_user_file('src/creds/token.json', conf["gmail_scopes"])
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
@@ -24,7 +24,7 @@ class GmailAPI:
                     conf["gmail_creds"], conf["gmail_scopes"])
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
-            with open('creds/token.json', 'w') as token:
+            with open('src/creds/token.json', 'w') as token:
                 token.write(creds.to_json())
 
         self.service = build('gmail', 'v1', credentials=creds)
