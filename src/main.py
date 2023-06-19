@@ -60,8 +60,6 @@ def home():
     return render_template('index.html',
                            name_source=handler_source.img_path,
                            name_dest=handler_dest.img_path)
-def test():
-    print("g")
 
 @app.route("/send_email", methods=["POST"])
 def send_email():
@@ -158,6 +156,7 @@ if __name__ == "__main__":
     # load presets
     try:
         presets = pd.read_csv("src/static/presets/presets.csv", delimiter=";")
+        print("Presets loaded")
     except FileNotFoundError:
         print("Presets CSV file not found")
 
