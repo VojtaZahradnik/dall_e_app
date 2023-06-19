@@ -1,0 +1,17 @@
+api_name: "https://api.deepai.org/api/image-editor"
+
+source_file_type: "png"
+
+img_source: "static/source"
+img_cleaned: "static/source_cleaned"
+img_dest: "static/dest"
+presets: "static/presets"
+img_placeholder: "imgs/woman.png"
+
+email_from: "vojta.zahradnik@gmail.com"
+email_subject: "Adastra AI"
+email_mess: "Adastra AI generated image"
+
+gmail_scopes:
+    - "https://www.googleapis.com/auth/gmail.send"
+gmail_creds: "creds/creds.json"

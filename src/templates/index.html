@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adastra AI</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <!-- Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <!-- Custom CSS -->
+    <style>
+
+      body {
+  background-color: gray;
+          color:black;
+          font-weight: bold;
+          font-size: 24px;
+
+}
+
+.container {
+  background-color: lightblue;
+  margin-top: 10%;
+  margin-left: 15%;
+}
+
+.container img {
+  max-width: 100%;
+  height: auto;
+}
+
+.container button {
+  width: 100%;
+  max-width: 280px;
+}
+
+#logo {
+  position: absolute;
+  top: 0px;
+  width: 200px;
+  height: auto;
+}
+
+.custom-div {
+  background-color: lightblue;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-div img {
+  max-width: 100%;
+  height: auto;
+  border: black 2px solid;
+}
+
+.custom-div button {
+  width: 100%;
+  background-color: red;
+  border: unset;
+  height: 40px;
+}
+
+#arrow{
+border: unset;}
+
+.row {
+  margin-bottom: 10px;
+}
+
+hr {
+  height: 2px;
+  background-color: black;
+}
+
+.input-group {
+    display: flex;
+    margin-top: 10px;
+    text-align: center;
+    align-items: center;
+}
+
+
+    </style>
+
+    <script>
+        function reloadPage() {
+        location.reload();
+}
+</script>
+</head>
+<body>
+    <img id="logo" src="../static/imgs/adastra_logo.svg" alt="Logo">
+
+    <div class="container">
+
+        <button onClick="reloadPage()">Reload</button>
+        <h1>Improve your photo with AI!</h1>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="custom-div">
+                    <img id="template" src = "{{url_for('static', filename=name_source)  }}"  alt="original image">
+                </div>
+                <form method="post" action="/upload">
+                <div class="custom-div">
+                    <button class="btn btn-primary btn-block">Upload</button>
+                </div></form>
+            </div>
+
+            <div class="col-md-1 col-4">
+                <div class="custom-div" style="height: 100%">
+                    <img id="arrow" src="../static/imgs/arrow.png" alt="edited image">
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="custom-div">
+                    <img id="edited_template" src = "{{url_for('static', filename=name_dest)  }}" alt="Logo">
+                </div>
+                <form method="post" action="/generate">
+                <div class="custom-div">
+                    <button class="btn btn-primary btn-block">Generate</button>
+                </div>
+                </form>
+            </div>
+
+            <div class="col-md-2 col-4">
+                <form method="POST" action="/send_email">
+                <div class="custom-div">
+                    <div class="input-group">
+                        <input type="text" name="firstname" class="form-control" placeholder="Firstname">
+                    </div>
+                </div>
+                <div class="custom-div">
+                    <div class="input-group">
+                        <input type="text" id="lastname" name="lastname" class="form-control" placeholder="Lastname">
+                    </div>
+                </div>
+                <div class="custom-div">
+                    <div class="input-group">
+                        <input type="email" name="email" class="form-control" placeholder="Email">
+                    </div>
+                </div>
+                <div class="custom-div">
+                    <div class="input-group">
+                    <button type="submit" class="btn btn-primary btn-block">Send to Email</button>
+                    </div>
+                </div>
+                </form>
+                <form method="post" action="/print">
+                    <div class="custom-div">
+                    <div class="input-group">
+                    <button class="btn btn-primary btn-block">Print</button>
+                    </div>
+                </div>
+                </form>
+
+                <form method="post" action="/delete">
+                <div class="custom-div" style="margin-top: 10px">
+                    <button class="btn btn-primary btn-block">Delete</button>
+                </div></form>
+            </div>
+        </div>
+        <h3>Upload image, after this choose template and generate!</h3>
+        <hr>
+    </div>
+</body>
+
+</html>
