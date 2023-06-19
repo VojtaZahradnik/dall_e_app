@@ -14,3 +14,5 @@ class Printer:
     def print_image(self, img_path: str):
         try:
             run(["mspaint.exe","/pt", img_path])
+        except CalledProcessError as e:
+            print(f"Printing failed with error {e}")
