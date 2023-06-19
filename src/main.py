@@ -6,6 +6,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 # from printer import Printer
 from gmail_api import GmailAPI
+from werkzeug.utils import secure_filename
 import csv
 import os
 import pandas as pd
@@ -15,23 +16,22 @@ app.jinja_env.auto_reload = True
 app.config['SERVER_NAME'] = 'localhost:5001'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
+
 class SourceHandler(FileSystemEventHandler):
     def __init__(self, app):
         self.app = app
         self.img_path = image_gen.filename
-        print(self.img_path)
         with self.app.app_context():
             redirect(url_for('home'))
 
-
     def on_created(self, event):
-        self.img_path = event.src_path.replace("src/static/", "")
+        self.img_path = event.src_path
         print(f"Got event for {self.img_path}")
-        image_gen.filename=self.img_path
+        image_gen.filename = self.img_path
         with self.app.app_context():
             print(f"Changing source image to {self.img_path}")
-            render_template("index.html", name_source=self.img_path)
             return redirect(url_for('home'))
+
 
 class DestHandler(FileSystemEventHandler):
     def __init__(self, app):
@@ -40,9 +40,8 @@ class DestHandler(FileSystemEventHandler):
         with self.app.app_context():
             redirect(url_for('home'))
 
-
     def on_created(self, event):
-        self.img_path = event.src_path.replace("src/static/", "")
+        self.img_path = event.src_path
         print(f"Got event for {self.img_path}")
         with self.app.app_context():
             print(f"Changing destination image to {self.img_path}")
@@ -58,22 +57,21 @@ def load_config(path: str) -> dict:
 @app.route("/home")
 def home():
     return render_template('index.html',
-                           name_source=handler_source.img_path,
-                           name_dest=handler_dest.img_path)
+                           name_source=handler_source.img_path.replace("src", ""),
+                           name_dest=handler_dest.img_path.replace("src", ""))
+
 
 @app.route("/send_email", methods=["POST"])
 def send_email():
-
     if not os.path.exists("history"):
         os.mkdir("history")
-    with open(os.path.join("history","history.csv"), 'a') as f:
+    with open(os.path.join("history", "history.csv"), 'a') as f:
         writer = csv.writer(f)
         writer.writerow([request.form.get('firstname'),
                          request.form.get('lastname'),
                          request.form.get('email'),
-                         image_gen.filename])
+                         image_gen.filename.replace("source_cleaned", "dest")])
         f.close()
-
 
     if image_gen.image and request.form.get('email') != "":
         print(f"Sending email to {request.form.get('email')} with image {handler_dest.img_path}")
@@ -82,7 +80,7 @@ def send_email():
         handler_source.img_path = conf["img_placeholder"]
         handler_dest.img_path = conf["img_placeholder"]
 
-        redirect(url_for('home'))
+        return redirect(url_for('home'))
     else:
         print("Image is not generated or email is not provided")
 
@@ -95,7 +93,6 @@ def delete():
     handler_dest.img_path = conf["img_placeholder"]
 
     return redirect(url_for('home'))
-
 
 
 @app.route("/print", methods=["POST"])
@@ -115,19 +112,15 @@ def upload():
     handler_source.img_path = conf["img_placeholder"]
     handler_dest.img_path = conf["img_placeholder"]
     try:
-        filename = askopenfilename(initialdir=conf["img_source"],
-                                   title="Select a Image",
-                                   filetypes=[
-                                       ("image", ".jpeg"),
-                                       ("image", ".png"),
-                                       ("image", ".jpg"),
-                                   ]).split("static")[-1]
+        filename = os.path.join(conf["img_source"],
+                                secure_filename(request.files['uploaded-photo'].filename))
+        print(filename)
     except AttributeError as e:
         print(e)
         filename = conf["img_placeholder"]
     print(f"Selected image: {filename}")
 
-    image_gen.filename = filename.replace("source", "source_cleaned")
+    image_gen.filename = filename
     handler_source.img_path = filename
     return redirect(url_for('home'))
 
@@ -146,8 +139,8 @@ def generate():
 
 if __name__ == "__main__":
     try:
-        conf = load_config("src/configs/conf.yaml")
-        creds = load_config("src/configs/creds.yaml")
+        conf = load_config(os.path.join("src", "configs", "conf.yaml"))
+        creds = load_config(os.path.join("src", "configs", "creds.yaml"))
         print("Configs loaded")
     except FileNotFoundError as e:
         print("Configs not founded")
@@ -155,7 +148,7 @@ if __name__ == "__main__":
 
     # load presets
     try:
-        presets = pd.read_csv("src/static/presets/presets.csv", delimiter=";")
+        presets = pd.read_csv(os.path.join("src","static","presets","presets.csv", delimiter=";")
         print("Presets loaded")
     except FileNotFoundError:
         print("Presets CSV file not found")

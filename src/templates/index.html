@@ -13,9 +13,12 @@
     </div>
     <div class="row">
     <div class="column image-column">
-        <form method="POST" action="/upload">
-        <img src=  "{{url_for('static', filename=name_source)  }}" alt="" class="img-input-output">
-        <button class="img-btn">Upload</button>
+        <form method="POST" action="/upload" enctype="multipart/form-data">
+        <img src="{{ name_source}}" alt="" class="img-input-output">
+        <label class="img-btn">
+          <input type="file" name="uploaded-photo" onchange="form.submit()" >
+          Upload
+      </label>
         </form>
       </div>
       <div class="column arrow">
@@ -23,7 +26,7 @@
       </div>
       <div class="column image-column">
         <form method="POST" action="/generate">
-          <img src=  "{{url_for('static', filename=name_dest)  }}" alt="" class="img-input-output">
+          <img src=  "{{ name_dest }}" alt="" class="img-input-output">
         <button class="img-btn">Generate</button>
 
       </div>

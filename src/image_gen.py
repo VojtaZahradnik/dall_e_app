@@ -34,7 +34,7 @@ class ImageGen:
         print(self.filename)
         if "source_cleaned" not in self.filename:
             self.filename = self.filename.replace("source", "source_cleaned")
-        image_path = os.path.join("src", "static", "self.filename")
+        image_path = self.filename
 
         print(f"Starting gen. phase with {prompt} on {image_path}")
         try:
@@ -83,7 +83,7 @@ class ImageGen:
         return Image.open(BytesIO(response.content))
 
     def remove_bckgr(self, img_name: str):
-        with open(os.path.join("src", "static", img_name), 'rb') as file:
+        with open(img_name, 'rb') as file:
             input_image = file.read()
 
         output_image = rembg.remove(input_image)
@@ -92,8 +92,7 @@ class ImageGen:
             os.mkdir(self.conf['img_cleaned'])
 
         # Save the result
-        with open(os.path.join(self.conf['img_cleaned'],
-                               img_name.replace('source/','')), 'wb') as file:
+        with open(img_name.replace("source","source_cleaned"), 'wb') as file:
             file.write(output_image)
 
 
