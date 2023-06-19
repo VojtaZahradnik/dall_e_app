@@ -4,7 +4,7 @@ from image_gen import ImageGen
 from tkinter.filedialog import askopenfilename
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-# from printer import Printer
+from printer import Printer
 from gmail_api import GmailAPI
 from werkzeug.utils import secure_filename
 import csv
@@ -99,7 +99,7 @@ def delete():
 def print_image():
     print("printing")
     if image_gen.image:
-        # printer.print(image=image_gen.get_image())
+        printer.print(image=image_gen.get_image())
 
         handler_source.img_path = conf["img_placeholder"]
         handler_dest.img_path = conf["img_placeholder"]
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     image_gen = ImageGen(key=creds["DEEPAI_API_KEY"], conf=conf)
     print("Object from ImageGen class created")
 
-    # printer = Printer()
+    printer = Printer()
     print("Object from Printer class created")
 
     email_sender = GmailAPI(conf=conf)
