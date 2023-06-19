@@ -148,7 +148,9 @@ if __name__ == "__main__":
 
     # load presets
     try:
-        presets = pd.read_csv(os.path.join("src","static","presets","presets.csv", delimiter=";")
+        presets = pd.read_csv(
+            os.path.join("src","static","presets","presets.csv",
+                         delimiter=";"))
         print("Presets loaded")
     except FileNotFoundError:
         print("Presets CSV file not found")
