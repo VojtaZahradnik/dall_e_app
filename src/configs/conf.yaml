@@ -6,7 +6,7 @@ img_source: "src/static/source"
 img_cleaned: "src/static/source_cleaned"
 img_dest: "src/static/dest"
 img_presets: "src/static/presets"
-img_placeholder: "src/imgs/woman.png"
+img_placeholder: "src/static/img/woman.png"
 
 email_from: "vojta.zahradnik@gmail.com"
 email_subject: "Adastra AI"

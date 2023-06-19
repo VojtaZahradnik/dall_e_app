@@ -8,7 +8,6 @@ from watchdog.events import FileSystemEventHandler
 from gmail_api import GmailAPI
 import csv
 import os
-import sys
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.jinja_env.auto_reload = True
@@ -66,8 +65,8 @@ def home():
 def send_email():
     if image_gen.image and request.form.get('email') != "":
         print(f"Sending email to {request.form.get('email')} with image {handler_dest.img_path}")
-        # email_sender.send_email(image_path=handler_dest.img_path,
-        #                         email_to=request.form.get('email'))
+        email_sender.send_email(image_path=handler_dest.img_path,
+                                email_to=request.form.get('email'))
     else:
         print("Image is not generated or email is not provided")
 
@@ -98,7 +97,7 @@ def delete():
 @app.route("/print", methods=["POST"])
 def print_image():
     if image_gen.image:
-        printer.print(image=image_gen.get_image())
+        # printer.print(image=image_gen.get_image())
 
         handler_source.img_path = conf["img_placeholder"]
         handler_dest.img_path = conf["img_placeholder"]
