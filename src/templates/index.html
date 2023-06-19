@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title></title>
-  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="../static/styles/style.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gotham+Office&display=swap">
 </head>
 <body>
@@ -14,11 +14,8 @@
     <div class="row">
     <div class="column image-column">
         <form method="POST" action="/upload">
-        <img src="img/placeholder.png" alt="" class="img-input-output">
-        <label class="img-btn">
-          <input type="file" name="uploaded-photo">
-          Upload
-      </label>
+        <img src=  "{{url_for('static', filename=name_source)  }}" alt="" class="img-input-output">
+        <button class="img-btn">Upload</button>
         </form>
       </div>
       <div class="column arrow">
@@ -26,7 +23,7 @@
       </div>
       <div class="column image-column">
         <form method="POST" action="/generate">
-          <img src=  "img/placeholder.png" alt="" class="img-input-output">
+          <img src=  "{{url_for('static', filename=name_dest)  }}" alt="" class="img-input-output">
         <button class="img-btn">Generate</button>
 
       </div>
@@ -35,62 +32,62 @@
             <div class="option">
             <input type="radio" id="0" name="options" value="0" checked>
             <label for="0">
-              <img src="img/placeholder.png" alt="Preset 1">
+              <img src="../static/img/placeholder.png" alt="Preset 1">
             </label>
             </div>
             
             <div class="option">
             <input type="radio" id="1" name="options" value="1">
             <label for="1">
-              <img src="img/placeholder.png" alt="Preset 2">
+              <img src="../static/img/placeholder.png" alt="Preset 2">
             </label>
             </div>
             
             <div class="option">
             <input type="radio" id="2" name="options" value="2">
             <label for="2">
-              <img src="img/placeholder.png" alt="Preset 3">
+              <img src="../static/img/placeholder.png" alt="Preset 3">
             </label>
             </div>
 
             <div class="option">
             <input type="radio" id="3" name="options" value="3">
             <label for="3">
-              <img src="img/placeholder.png" alt="Preset 4">
+              <img src="../static/img/placeholder.png" alt="Preset 4">
             </label>
             </div>
 
             <div class="option">
             <input type="radio" id="4" name="options" value="4">
             <label for="4">
-              <img src="img/placeholder.png" alt="Preset 5">
+              <img src="../static/img/placeholder.png" alt="Preset 5">
             </label>
             </div>
 
             <div class="option">
             <input type="radio" id="5" name="options" value="5">
             <label for="5">
-              <img src="img/placeholder.png" alt="Preset 6">
+              <img src="../static/img/placeholder.png" alt="Preset 6">
             </label>
             </div>
 
             <div class="option">
                 <input type="radio" id="6" name="options" value="6">
                 <label for="6">
-                  <img src="img/placeholder.png" alt="Preset 7">
+                  <img src="../static/img/placeholder.png" alt="Preset 7">
                 </label>
                 </div>
 
             <div class="option">
                 <input type="radio" id="7" name="options" value="7">
                 <label for="7">
-                    <img src="img/placeholder.png" alt="Preset 8">
+                    <img src="../static/img/placeholder.png" alt="Preset 8">
                 </label>
                 </div>
                 <div class="option">
                   <input type="radio" id="8" name="options" value="8">
                   <label for="8">
-                      <img src="img/placeholder.png" alt="Preset 8">
+                      <img src="../static/img/placeholder.png" alt="Preset 8">
                   </label>
                   </div>
           </div>
