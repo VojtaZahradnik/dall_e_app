@@ -168,3 +168,5 @@ imgs
 /src/GA_creds.json
 /src/creds/creds.json
 /src/creds/
+/src/history/
+/src/static/source_cleaned/

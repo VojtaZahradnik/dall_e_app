@@ -6,11 +6,12 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from printer import Printer
 from gmail_api import GmailAPI
-from image import Image
+import csv
+import os
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.jinja_env.auto_reload = True
-app.config['SERVER_NAME'] = 'localhost:5000'
+app.config['SERVER_NAME'] = 'localhost:5001'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 
@@ -20,29 +21,32 @@ class SourceHandler(FileSystemEventHandler):
         self.img_path = image_gen.filename
         print(self.img_path)
         with self.app.app_context():
-            render_template("index.html", name_source=self.img_path)
+            redirect(url_for('home'))
+
 
     def on_created(self, event):
         self.img_path = event.src_path.replace("static/", "")
         print(f"Got event for {self.img_path}")
+        image_gen.filename=self.img_path
         with self.app.app_context():
             print(f"Changing source image to {self.img_path}")
-            return render_template("index.html", name_source=self.img_path)
-
+            render_template("index.html", name_source=self.img_path)
+            return redirect(url_for('home'))
 
 class DestHandler(FileSystemEventHandler):
     def __init__(self, app):
         self.app = app
         self.img_path = image_gen.filename
         with self.app.app_context():
-            render_template("index.html", name_source=self.img_path)
+            redirect(url_for('home'))
+
 
     def on_created(self, event):
         self.img_path = event.src_path.replace("static/", "")
         print(f"Got event for {self.img_path}")
         with self.app.app_context():
             print(f"Changing destination image to {self.img_path}")
-            return render_template("index.html", name_dest=self.img_path)
+            return redirect(url_for('home'))
 
 
 def load_config(path: str) -> dict:
@@ -67,6 +71,26 @@ def send_email():
     else:
         print("Image is not generated or email is not provided")
 
+    if not os.path.exists("history"):
+        os.mkdir("history")
+    with open("history/history.csv", 'a') as f:
+        writer = csv.writer(f)
+        writer.writerow([request.form.get('firstname'),
+                         request.form.get('lastname'),
+                         request.form.get('email'),
+                         image_gen.image["output_url"]])
+        f.close()
+
+    handler_source.img_path = conf["img_placeholder"]
+    handler_dest.img_path = conf["img_placeholder"]
+
+    return redirect(url_for('home'))
+
+@app.route("/delete", methods=["POST"])
+def delete():
+    handler_source.img_path = conf["img_placeholder"]
+    handler_dest.img_path = conf["img_placeholder"]
+
     return redirect(url_for('home'))
 
 
@@ -75,9 +99,11 @@ def send_email():
 def print_image():
     if image_gen.image:
         printer.print(image=image_gen.get_image())
-        return render_template("index.html",
-                               name_source=handler_source.img_path,
-                               name_dest=handler_dest.img_path)
+
+        handler_source.img_path = conf["img_placeholder"]
+        handler_dest.img_path = conf["img_placeholder"]
+
+        return redirect(url_for("home"))
 
 
 @app.route("/upload", methods=["POST"])
@@ -95,30 +121,23 @@ def upload():
         filename = conf["img_placeholder"]
     print(f"Selected image: {filename}")
 
-    image_gen.filename = filename
+    image_gen.filename = filename.replace("source", "source_cleaned")
     handler_source.img_path = filename
-    return render_template("index.html",
-                           name_source=filename,
-                           name_dest=handler_dest.img_path)
+    return redirect(url_for('home'))
 
 
 @app.route("/generate", methods=["POST"])
 def generate():
-    # TODO: condition to image exists
+    image_gen.remove_bckgr(handler_source.img_path)
     image_gen.gen_image(prompt="Change my face into cyborg")
     image_gen.save_image()
-    return render_template("index.html",
-                           name_source=handler_source.img_path,
-                           name_dest=handler_dest.img_path)
+    return redirect(url_for('home'))
 
 
 if __name__ == "__main__":
     conf = load_config("configs/conf.yaml")
     creds = load_config("configs/creds.yaml")
     print("Configs loaded")
-
-    image_path = Image(placeholder=conf["img_placeholder"])
-    print("Object from Image class created")
 
     image_gen = ImageGen(key=creds["DEEPAI_API_KEY"], conf=conf)
     print("Object from ImageGen class created")
@@ -133,10 +152,12 @@ if __name__ == "__main__":
     handler_source = SourceHandler(app)
     observer_source.schedule(handler_source, path=conf["img_source"], recursive=False)
     observer_source.start()
+    print(f"Observer for source folder {conf['img_source']} started")
 
     observer_dest = Observer()
-    handler_dest = SourceHandler(app)
+    handler_dest = DestHandler(app)
     observer_dest.schedule(handler_dest, path=conf["img_dest"], recursive=False)
     observer_dest.start()
+    print(f"Observer for destination folder {conf['img_dest']} started")
 
     app.run(debug=True)
