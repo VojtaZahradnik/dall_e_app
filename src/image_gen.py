@@ -34,7 +34,7 @@ class ImageGen:
         print(self.filename)
         if "source_cleaned" not in self.filename:
             self.filename = self.filename.replace("source", "source_cleaned")
-        image_path = "static/" + self.filename
+        image_path = "src/static/" + self.filename
 
         print(f"Starting gen. phase with {prompt} on {image_path}")
         try:
@@ -48,6 +48,9 @@ class ImageGen:
             ).json()
         except FileNotFoundError:
             print(f"{self.filename} not found")
+        except KeyError as e:
+            print("Api error")
+            print(e)
 
         print(self.image)
         if not "output_url" in self.image.keys():
@@ -80,7 +83,7 @@ class ImageGen:
         return Image.open(BytesIO(response.content))
 
     def remove_bckgr(self, img_name: str):
-        with open(f"static/{img_name}", 'rb') as file:
+        with open(f"src/static/{img_name}", 'rb') as file:
             input_image = file.read()
 
         output_image = rembg.remove(input_image)

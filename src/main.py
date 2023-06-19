@@ -4,16 +4,16 @@ from image_gen import ImageGen
 from tkinter.filedialog import askopenfilename
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from printer import Printer
+# from printer import Printer
 from gmail_api import GmailAPI
 import csv
 import os
+import pandas as pd
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.jinja_env.auto_reload = True
 app.config['SERVER_NAME'] = 'localhost:5001'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
-
 
 class SourceHandler(FileSystemEventHandler):
     def __init__(self, app):
@@ -25,7 +25,7 @@ class SourceHandler(FileSystemEventHandler):
 
 
     def on_created(self, event):
-        self.img_path = event.src_path.replace("static/", "")
+        self.img_path = event.src_path.replace("src/static/", "")
         print(f"Got event for {self.img_path}")
         image_gen.filename=self.img_path
         with self.app.app_context():
@@ -42,7 +42,7 @@ class DestHandler(FileSystemEventHandler):
 
 
     def on_created(self, event):
-        self.img_path = event.src_path.replace("static/", "")
+        self.img_path = event.src_path.replace("src/static/", "")
         print(f"Got event for {self.img_path}")
         with self.app.app_context():
             print(f"Changing destination image to {self.img_path}")
@@ -60,16 +60,11 @@ def home():
     return render_template('index.html',
                            name_source=handler_source.img_path,
                            name_dest=handler_dest.img_path)
-
+def test():
+    print("g")
 
 @app.route("/send_email", methods=["POST"])
 def send_email():
-    if image_gen.image and request.form.get('email') != "":
-        print(f"Sending email to {request.form.get('email')} with image {handler_dest.img_path}")
-        email_sender.send_email(image_path=handler_dest.img_path,
-                                email_to=request.form.get('email'))
-    else:
-        print("Image is not generated or email is not provided")
 
     if not os.path.exists("history"):
         os.mkdir("history")
@@ -78,13 +73,23 @@ def send_email():
         writer.writerow([request.form.get('firstname'),
                          request.form.get('lastname'),
                          request.form.get('email'),
-                         image_gen.image["output_url"]])
+                         image_gen.filename])
         f.close()
 
-    handler_source.img_path = conf["img_placeholder"]
-    handler_dest.img_path = conf["img_placeholder"]
 
-    return redirect(url_for('home'))
+    if image_gen.image and request.form.get('email') != "":
+        print(f"Sending email to {request.form.get('email')} with image {handler_dest.img_path}")
+        email_sender.send_email(image_path=handler_dest.img_path,
+                                email_to=request.form.get('email'))
+        handler_source.img_path = conf["img_placeholder"]
+        handler_dest.img_path = conf["img_placeholder"]
+
+        redirect(url_for('home'))
+    else:
+        print("Image is not generated or email is not provided")
+
+        return redirect(url_for('home'))
+
 
 @app.route("/delete", methods=["POST"])
 def delete():
@@ -97,8 +102,9 @@ def delete():
 
 @app.route("/print", methods=["POST"])
 def print_image():
+    print("printing")
     if image_gen.image:
-        printer.print(image=image_gen.get_image())
+        # printer.print(image=image_gen.get_image())
 
         handler_source.img_path = conf["img_placeholder"]
         handler_dest.img_path = conf["img_placeholder"]
@@ -126,23 +132,45 @@ def upload():
     return redirect(url_for('home'))
 
 
+@app.route('/process_image', methods=['POST'])
+def process_image():
+    selected_image = request.form.get('options')  # Retrieve the selected image value
+    print(selected_image)
+    # Further processing logic for the selected image
+
+    return 'Image processing completed.'
+
 @app.route("/generate", methods=["POST"])
 def generate():
-    image_gen.remove_bckgr(handler_source.img_path)
-    image_gen.gen_image(prompt="Change my face into cyborg")
-    image_gen.save_image()
+    selected_preset = request.form.get('options')
+
+    if selected_preset and "placeholder" not in handler_source.img_path:
+        pass
+        image_gen.remove_bckgr(handler_source.img_path)
+        image_gen.gen_image(prompt=presets.iloc[int(selected_preset)]["prompt"])
+        image_gen.save_image()
     return redirect(url_for('home'))
 
 
 if __name__ == "__main__":
-    conf = load_config("configs/conf.yaml")
-    creds = load_config("configs/creds.yaml")
-    print("Configs loaded")
+    try:
+        conf = load_config("src/configs/conf.yaml")
+        creds = load_config("src/configs/creds.yaml")
+        print("Configs loaded")
+    except FileNotFoundError as e:
+        print("Configs not founded")
+        print(e)
+
+    # load presets
+    try:
+        presets = pd.read_csv("src/static/presets/presets.csv", delimiter=";")
+    except FileNotFoundError:
+        print("Presets CSV file not found")
 
     image_gen = ImageGen(key=creds["DEEPAI_API_KEY"], conf=conf)
     print("Object from ImageGen class created")
 
-    printer = Printer()
+    # printer = Printer()
     print("Object from Printer class created")
 
     email_sender = GmailAPI(conf=conf)
