@@ -68,7 +68,7 @@ def send_email():
 
     if not os.path.exists("history"):
         os.mkdir("history")
-    with open("history/history.csv", 'a') as f:
+    with open(os.path.join("history","history.csv"), 'a') as f:
         writer = csv.writer(f)
         writer.writerow([request.form.get('firstname'),
                          request.form.get('lastname'),
@@ -114,6 +114,8 @@ def print_image():
 
 @app.route("/upload", methods=["POST"])
 def upload():
+    handler_source.img_path = conf["img_placeholder"]
+    handler_dest.img_path = conf["img_placeholder"]
     try:
         filename = askopenfilename(initialdir=conf["img_source"],
                                    title="Select a Image",
@@ -131,14 +133,6 @@ def upload():
     handler_source.img_path = filename
     return redirect(url_for('home'))
 
-
-@app.route('/process_image', methods=['POST'])
-def process_image():
-    selected_image = request.form.get('options')  # Retrieve the selected image value
-    print(selected_image)
-    # Further processing logic for the selected image
-
-    return 'Image processing completed.'
 
 @app.route("/generate", methods=["POST"])
 def generate():

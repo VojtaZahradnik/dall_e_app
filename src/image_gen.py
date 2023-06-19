@@ -34,7 +34,7 @@ class ImageGen:
         print(self.filename)
         if "source_cleaned" not in self.filename:
             self.filename = self.filename.replace("source", "source_cleaned")
-        image_path = "src/static/" + self.filename
+        image_path = "src/static" + self.filename
 
         print(f"Starting gen. phase with {prompt} on {image_path}")
         try:
