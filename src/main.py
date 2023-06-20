@@ -77,8 +77,8 @@ def send_email():
         print(f"Sending email to {request.form.get('email')} with image {handler_dest.img_path}")
         email_sender.send_email(image_path=handler_dest.img_path,
                                 email_to=request.form.get('email'))
-        handler_source.img_path = conf["img_placeholder"]
-        handler_dest.img_path = conf["img_placeholder"]
+        handler_source.img_path = conf["img_placeholder_before"]
+        handler_dest.img_path = conf["img_placeholder_edited"]
 
         return redirect(url_for('home'))
     else:
@@ -89,8 +89,8 @@ def send_email():
 
 @app.route("/delete", methods=["POST"])
 def delete():
-    handler_source.img_path = conf["img_placeholder"]
-    handler_dest.img_path = conf["img_placeholder"]
+    handler_source.img_path = conf["img_placeholder_before"]
+    handler_dest.img_path = conf["img_placeholder_edited"]
 
     return redirect(url_for('home'))
 
@@ -101,27 +101,26 @@ def send_to_printer():
     if image_gen.image:
         print_image(image_path=handler_dest.img_path)
         print("Printing done")
-        handler_source.img_path = conf["img_placeholder"]
-        handler_dest.img_path = conf["img_placeholder"]
+        handler_source.img_path = conf["img_placeholder_before"]
+        handler_dest.img_path = conf["img_placeholder_edited"]
 
         return redirect(url_for("home"))
 
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    handler_source.img_path = conf["img_placeholder"]
-    handler_dest.img_path = conf["img_placeholder"]
+    handler_source.img_path = conf["img_placeholder_before"]
+    handler_dest.img_path = conf["img_placeholder_edited"]
     try:
         filename = os.path.join(conf["img_source"],
                                 secure_filename(request.files['uploaded-photo'].filename))
         print(filename)
     except AttributeError as e:
         print(e)
-        filename = conf["img_placeholder"]
     print(f"Selected image: {filename}")
 
-    image_gen.filename = filename
-    handler_source.img_path = filename
+    image_gen.filename = conf["img_placeholder_before"]
+    handler_source.img_path = conf["img_placeholder_edited"]
     return redirect(url_for('home'))
 
 

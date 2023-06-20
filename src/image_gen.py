@@ -13,7 +13,7 @@ class ImageGen:
         self.api_key = key
         self.conf = conf
         self.image = None
-        self.filename = conf["img_placeholder"]
+        self.filename = conf["img_placeholder_before"]
 
     def save_image(self) -> bool:
         # TODO: try catch return bool - exception handling
