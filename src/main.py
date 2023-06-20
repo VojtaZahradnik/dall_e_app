@@ -79,7 +79,7 @@ def send_email():
                                 email_to=request.form.get('email'))
         handler_source.img_path = conf["img_placeholder_before"]
         handler_dest.img_path = conf["img_placeholder_edited"]
-
+        image_gen.image = None
         return redirect(url_for('home'))
     else:
         print("Image is not generated or email is not provided")
@@ -91,6 +91,7 @@ def send_email():
 def delete():
     handler_source.img_path = conf["img_placeholder_before"]
     handler_dest.img_path = conf["img_placeholder_edited"]
+    image_gen.image = None
 
     return redirect(url_for('home'))
 
@@ -104,6 +105,8 @@ def send_to_printer():
         handler_source.img_path = conf["img_placeholder_before"]
         handler_dest.img_path = conf["img_placeholder_edited"]
 
+        image_gen.image = None
+
         return redirect(url_for("home"))
 
 
@@ -112,24 +115,31 @@ def upload():
     handler_source.img_path = conf["img_placeholder_before"]
     handler_dest.img_path = conf["img_placeholder_edited"]
     try:
+
+        uploaded_file = request.files['uploaded-photo']
+        file_path = os.path.join(conf["img_source"], uploaded_file.filename)
+        print(file_path)
+        uploaded_file.save(file_path)
+
         filename = os.path.join(conf["img_source"],
                                 secure_filename(request.files['uploaded-photo'].filename))
-        print(filename)
+        image_gen.filename = filename
+        handler_source.img_path = filename
     except AttributeError as e:
         print(e)
+        image_gen.filename = conf["img_placeholder_before"]
+        handler_source.img_path = conf["img_placeholder_edited"]
     print(f"Selected image: {filename}")
 
-    image_gen.filename = conf["img_placeholder_before"]
-    handler_source.img_path = conf["img_placeholder_edited"]
     return redirect(url_for('home'))
 
 
 @app.route("/generate", methods=["POST"])
 def generate():
     selected_preset = request.form.get('options')
+    print(f"Selected_preset index: {selected_preset}")
 
     if selected_preset and "placeholder" not in handler_source.img_path:
-        pass
         image_gen.remove_bckgr(handler_source.img_path)
         image_gen.gen_image(prompt=presets.iloc[int(selected_preset)]["prompt"])
         image_gen.save_image()
@@ -174,4 +184,4 @@ if __name__ == "__main__":
     observer_dest.start()
     print(f"Observer for destination folder {conf['img_dest']} started")
 
-    app.run(debug=True)
+    app.run()
