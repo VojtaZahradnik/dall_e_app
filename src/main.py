@@ -4,7 +4,7 @@ from image_gen import ImageGen
 from tkinter.filedialog import askopenfilename
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from printer import print_image
+# from printer import print_image
 from gmail_api import GmailAPI
 from werkzeug.utils import secure_filename
 import csv
@@ -100,7 +100,7 @@ def delete():
 def send_to_printer():
     print("Printing")
     if image_gen.image:
-        print_image(image_path=handler_dest.img_path)
+        # print_image(image_path=handler_dest.img_path)
         print("Printing done")
         handler_source.img_path = conf["img_placeholder_before"]
         handler_dest.img_path = conf["img_placeholder_edited"]
@@ -141,8 +141,9 @@ def generate():
 
     if selected_preset and "placeholder" not in handler_source.img_path:
         image_gen.remove_bckgr(handler_source.img_path)
+        image_gen.crop_image(handler_source.img_path)
+        image_gen.enhanced_image(handler_source.img_path)
         image_gen.gen_image(prompt=presets.iloc[int(selected_preset)]["prompt"])
-        image_gen.save_image()
     return redirect(url_for('home'))
 
 
@@ -184,4 +185,4 @@ if __name__ == "__main__":
     observer_dest.start()
     print(f"Observer for destination folder {conf['img_dest']} started")
 
-    app.run()
+    app.run(debug=True)

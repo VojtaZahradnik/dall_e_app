@@ -4,6 +4,7 @@ source_file_type: "png"
 
 img_source: "src/static/source"
 img_cleaned: "src/static/source_cleaned"
+img_croped: "src/static/source_croped"
 img_dest: "src/static/dest"
 img_presets: "src/static/presets"
 img_placeholder_before: "static/img/placeholder_before.png"

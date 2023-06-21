@@ -24,3 +24,7 @@ def print_image(image_path: str, orientation: int = 1):
     except subprocess.CalledProcessError as e:
         print("Printing failed")
         print(e)
+
+    # Dont do this again
+    except BaseException as e:
+        print(e)
