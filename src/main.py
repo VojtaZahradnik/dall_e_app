@@ -4,7 +4,7 @@ from image_gen import ImageGen
 from tkinter.filedialog import askopenfilename
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-# from printer import print_image
+from printer import print_image
 from gmail_api import GmailAPI
 from werkzeug.utils import secure_filename
 import csv
@@ -13,7 +13,7 @@ import pandas as pd
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.jinja_env.auto_reload = True
-app.config['SERVER_NAME'] = 'localhost:5001'
+app.config['SERVER_NAME'] = 'localhost:5000'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 
@@ -100,7 +100,7 @@ def delete():
 def send_to_printer():
     print("Printing")
     if image_gen.image:
-        # print_image(image_path=handler_dest.img_path)
+        print_image(image_path=handler_dest.img_path)
         print("Printing done")
         handler_source.img_path = conf["img_placeholder_before"]
         handler_dest.img_path = conf["img_placeholder_edited"]
