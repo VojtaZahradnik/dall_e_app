@@ -146,8 +146,11 @@ class ImageGen:
         except KeyError as e:
             print("Api error")
             print(e)
+        except UnboundLocalError as e:
+            print("Variable not set")
+            print(e)
 
-        self.save_image(image["output_url"], name=image_path.split("/")[-1].split(".")[0],
+        self.save_image(image["output_url"], name=os.path.split(image_path)[-1].split(".")[0],
         path = self.conf["img_source"].replace("source",
                                                                                     "source_enhanced"))
 
