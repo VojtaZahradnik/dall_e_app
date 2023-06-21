@@ -6,6 +6,7 @@ from io import BytesIO
 import glob
 import requests
 import rembg
+import cv2
 
 class ImageGen:
 
@@ -94,6 +95,33 @@ class ImageGen:
         # Save the result
         with open(img_name.replace("source","source_cleaned"), 'wb') as file:
             file.write(output_image)
+
+    def crop_image(self,image_path, save_path: str):
+        # Load the image in grayscale
+        # Load the image with transparent background
+        image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+
+        # Convert the image to grayscale
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # Apply a threshold to obtain a binary image
+        _, threshold = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
+
+        # Find contours in the binary image
+        contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Find the largest contour (assuming it represents the object)
+        largest_contour = max(contours, key=cv2.contourArea)
+
+        # Find the bounding box of the object
+        x, y, w, h = cv2.boundingRect(largest_contour)
+
+        # Crop the image based on the bounding box
+        cropped_image = image[y:y + h, x:x + w]
+
+        # Save the cropped image
+        cv2.imwrite('cropped_image.png', cropped_image)
+
 
 
 
