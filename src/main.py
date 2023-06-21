@@ -4,7 +4,7 @@ from image_gen import ImageGen
 from tkinter.filedialog import askopenfilename
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-#from printer import print_image
+from printer import print_image
 from gmail_api import GmailAPI
 from werkzeug.utils import secure_filename
 import csv
@@ -100,7 +100,7 @@ def delete():
 def send_to_printer():
     print("Printing")
     if image_gen.image:
-        #print_image(image_path=handler_dest.img_path)
+        print_image(image_path=handler_dest.img_path)
         print("Printing done")
         handler_source.img_path = conf["img_placeholder_before"]
         handler_dest.img_path = conf["img_placeholder_edited"]
