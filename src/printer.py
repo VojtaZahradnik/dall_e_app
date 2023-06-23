@@ -1,18 +1,30 @@
 import win32printing
-from PIL import Image
-from subprocess import CalledProcessError, run
+import subprocess
 
-PHYSICALWIDTH = 110
-PHYSICALHEIGHT = 111
 
-class Printer:
+def print_image(image_path: str, orientation: int = 1):
+    try:
+        subprocess.run(['mspaint.exe', '/pt', image_path], check=True)
 
-    def __init__(self):
-        pass
-        # self.default_printer = win32print.GetDefaultPrinter ()
+        # Get the default printer
+        default_printer = win32printing.GetDefaultPrinter()
 
-    def print_image(self, img_path: str):
-        try:
-            run(["mspaint.exe","/pt", img_path])
-        except CalledProcessError as e:
-            print(f"Printing failed with error {e}")
+        # Open a handle to the printer
+        printer_handle = win32printing.OpenPrinter(default_printer)
+
+        # Set the job information, including the orientation
+        job_info = {"pDevMode": win32printing.DocumentProperties(0, default_printer, None).Get(),
+                    "pOrientation": orientation}
+        win32printing.SetJob(printer_handle, 1, job_info, 0)
+
+        # Close the printer handle
+        win32printing.ClosePrinter(printer_handle)
+
+        print("Printing image")
+    except subprocess.CalledProcessError as e:
+        print("Printing failed")
+        print(e)
+
+    # Dont do this again
+    except BaseException as e:
+        print(e)

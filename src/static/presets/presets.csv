@@ -1,10 +1,15 @@
-id;prompt; image_path
-0;"Turn me into cyborg";
-1;"Turn me into superhero";
-2;"Turn me into amazon";
-3;"Turn me into ironamn";
-4;"Turn me into evil";
-5;"Turn me into angel";
-6;"Turn me into devil";
-7;"Turn me into god";
-8;"Turn me into dog";
+id;prompt;
+0;"anime";
+1;"cartoon";
+2;"clip art";
+3;"cubism";
+4;"drawing";
+5;"fantasy";
+6;"psychedelic";
+7;"post apocalyptic";
+8;"pop art";
+9;"steampunk";
+10;"impressionism";
+11;"hyperrealism";
+12;"surrealism";
+13;"Turn me into western style";

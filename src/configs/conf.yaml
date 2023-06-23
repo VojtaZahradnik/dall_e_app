@@ -4,9 +4,11 @@ source_file_type: "png"
 
 img_source: "src/static/source"
 img_cleaned: "src/static/source_cleaned"
+img_croped: "src/static/source_croped"
 img_dest: "src/static/dest"
-img_presets: "static/presets"
-img_placeholder: "img/placeholder.png"
+img_presets: "src/static/presets"
+img_placeholder_before: "static/img/placeholder_before.png"
+img_placeholder_edited: "static/img/placeholder_edited.png"
 
 email_from: "vojta.zahradnik@gmail.com"
 email_subject: "Adastra AI"

@@ -4,45 +4,44 @@ from image_gen import ImageGen
 from tkinter.filedialog import askopenfilename
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-# from printer import Printer
+from printer import print_image
 from gmail_api import GmailAPI
+from werkzeug.utils import secure_filename
 import csv
 import os
 import pandas as pd
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.jinja_env.auto_reload = True
-app.config['SERVER_NAME'] = 'localhost:5001'
+app.config['SERVER_NAME'] = 'localhost:5000'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+
 
 class SourceHandler(FileSystemEventHandler):
     def __init__(self, app):
         self.app = app
-        self.img_path = image_gen.filename
-        print(self.img_path)
+        self.img_path = conf["img_placeholder_before"]
         with self.app.app_context():
             redirect(url_for('home'))
 
-
     def on_created(self, event):
-        self.img_path = event.src_path.replace("src/static/", "")
+        self.img_path = event.src_path
         print(f"Got event for {self.img_path}")
-        image_gen.filename=self.img_path
+        image_gen.filename = self.img_path
         with self.app.app_context():
             print(f"Changing source image to {self.img_path}")
-            render_template("index.html", name_source=self.img_path)
             return redirect(url_for('home'))
+
 
 class DestHandler(FileSystemEventHandler):
     def __init__(self, app):
         self.app = app
-        self.img_path = image_gen.filename
+        self.img_path = conf["img_placeholder_edited"]
         with self.app.app_context():
             redirect(url_for('home'))
 
-
     def on_created(self, event):
-        self.img_path = event.src_path.replace("src/static/", "")
+        self.img_path = event.src_path
         print(f"Got event for {self.img_path}")
         with self.app.app_context():
             print(f"Changing destination image to {self.img_path}")
@@ -58,31 +57,30 @@ def load_config(path: str) -> dict:
 @app.route("/home")
 def home():
     return render_template('index.html',
-                           name_source=handler_source.img_path,
-                           name_dest=handler_dest.img_path)
+                           name_source=handler_source.img_path.replace("src", ""),
+                           name_dest=handler_dest.img_path.replace("src", ""))
+
 
 @app.route("/send_email", methods=["POST"])
 def send_email():
-
     if not os.path.exists("history"):
         os.mkdir("history")
-    with open(os.path.join("history","history.csv"), 'a') as f:
+    with open(os.path.join("history", "history.csv"), 'a') as f:
         writer = csv.writer(f)
         writer.writerow([request.form.get('firstname'),
                          request.form.get('lastname'),
                          request.form.get('email'),
-                         image_gen.filename])
+                         image_gen.filename.replace("source_cleaned", "dest")])
         f.close()
-
 
     if image_gen.image and request.form.get('email') != "":
         print(f"Sending email to {request.form.get('email')} with image {handler_dest.img_path}")
         email_sender.send_email(image_path=handler_dest.img_path,
                                 email_to=request.form.get('email'))
-        handler_source.img_path = conf["img_placeholder"]
-        handler_dest.img_path = conf["img_placeholder"]
-
-        redirect(url_for('home'))
+        handler_source.img_path = conf["img_placeholder_before"]
+        handler_dest.img_path = conf["img_placeholder_edited"]
+        image_gen.image = None
+        return redirect(url_for('home'))
     else:
         print("Image is not generated or email is not provided")
 
@@ -91,63 +89,68 @@ def send_email():
 
 @app.route("/delete", methods=["POST"])
 def delete():
-    handler_source.img_path = conf["img_placeholder"]
-    handler_dest.img_path = conf["img_placeholder"]
+    handler_source.img_path = conf["img_placeholder_before"]
+    handler_dest.img_path = conf["img_placeholder_edited"]
+    image_gen.image = None
 
     return redirect(url_for('home'))
 
 
-
 @app.route("/print", methods=["POST"])
-def print_image():
-    print("printing")
+def send_to_printer():
+    print("Printing")
     if image_gen.image:
-        # printer.print(image=image_gen.get_image())
+        print_image(image_path=handler_dest.img_path)
+        print("Printing done")
+        handler_source.img_path = conf["img_placeholder_before"]
+        handler_dest.img_path = conf["img_placeholder_edited"]
 
-        handler_source.img_path = conf["img_placeholder"]
-        handler_dest.img_path = conf["img_placeholder"]
+        image_gen.image = None
 
         return redirect(url_for("home"))
 
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    handler_source.img_path = conf["img_placeholder"]
-    handler_dest.img_path = conf["img_placeholder"]
+    handler_source.img_path = conf["img_placeholder_before"]
+    handler_dest.img_path = conf["img_placeholder_edited"]
     try:
-        filename = askopenfilename(initialdir=conf["img_source"],
-                                   title="Select a Image",
-                                   filetypes=[
-                                       ("image", ".jpeg"),
-                                       ("image", ".png"),
-                                       ("image", ".jpg"),
-                                   ]).split("static")[-1]
+
+        uploaded_file = request.files['uploaded-photo']
+        file_path = os.path.join(conf["img_source"], uploaded_file.filename)
+        print(file_path)
+        uploaded_file.save(file_path)
+
+        filename = os.path.join(conf["img_source"],
+                                secure_filename(request.files['uploaded-photo'].filename))
+        image_gen.filename = filename
+        handler_source.img_path = filename
     except AttributeError as e:
         print(e)
-        filename = conf["img_placeholder"]
+        image_gen.filename = conf["img_placeholder_before"]
+        handler_source.img_path = conf["img_placeholder_edited"]
     print(f"Selected image: {filename}")
 
-    image_gen.filename = filename.replace("source", "source_cleaned")
-    handler_source.img_path = filename
     return redirect(url_for('home'))
 
 
 @app.route("/generate", methods=["POST"])
 def generate():
     selected_preset = request.form.get('options')
+    print(f"Selected_preset index: {selected_preset}")
 
     if selected_preset and "placeholder" not in handler_source.img_path:
-        pass
         image_gen.remove_bckgr(handler_source.img_path)
+        image_gen.crop_image(handler_source.img_path)
+        image_gen.enhanced_image(handler_source.img_path)
         image_gen.gen_image(prompt=presets.iloc[int(selected_preset)]["prompt"])
-        image_gen.save_image()
     return redirect(url_for('home'))
 
 
 if __name__ == "__main__":
     try:
-        conf = load_config("src/configs/conf.yaml")
-        creds = load_config("src/configs/creds.yaml")
+        conf = load_config(os.path.join("src", "configs", "conf.yaml"))
+        creds = load_config(os.path.join("src", "configs", "creds.yaml"))
         print("Configs loaded")
     except FileNotFoundError as e:
         print("Configs not founded")
@@ -155,7 +158,9 @@ if __name__ == "__main__":
 
     # load presets
     try:
-        presets = pd.read_csv("src/static/presets/presets.csv", delimiter=";")
+        presets = pd.read_csv(
+            os.path.join("src", "static", "presets", "presets.csv"),
+            delimiter=";")
         print("Presets loaded")
     except FileNotFoundError:
         print("Presets CSV file not found")
@@ -163,7 +168,6 @@ if __name__ == "__main__":
     image_gen = ImageGen(key=creds["DEEPAI_API_KEY"], conf=conf)
     print("Object from ImageGen class created")
 
-    # printer = Printer()
     print("Object from Printer class created")
 
     email_sender = GmailAPI(conf=conf)
