@@ -55,10 +55,10 @@ class GmailAPI:
 
         try:
             message = (self.service.users().messages().send(userId="me", body=create_message).execute())
-            print(f'sent message to {message} Message Id: {message["id"]}')
+            self.app.logger.info(f'sent message to {message} Message Id: {message["id"]}')
         except HTTPError as error:
-            print(f'An error occurred: {error}')
+            self.app.logger.error(f'An error occurred: {error}')
             self.message = None
         except TypeError as error:
-            print("Not valid response")
-            print(error)
+            self.app.logger.error("Not valid response")
+            self.app.logger.error(error)

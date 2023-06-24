@@ -10,7 +10,6 @@ from logging.handlers import RotatingFileHandler
 import os
 from file_handler import Handler
 from datetime import datetime
-import csv
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.jinja_env.auto_reload = True
@@ -57,8 +56,8 @@ class AdastraApp:
         self.app.add_url_rule("/generate", "generate", self.generate, methods=["POST"])
         self.app.add_url_rule("/selected-image", "handle_selected_image", self.handle_selected_image, methods=["POST"])
 
-    def run(self, host='localhost', port=5000, debug=True):
-        self.app.run(host, port, debug)
+    def run(self, host='localhost', debug=True):
+        self.app.run(host, self.conf.port, debug)
 
     def start_observers(self):
         # Start observers for source and destination folders
@@ -165,6 +164,8 @@ class AdastraApp:
             self.image_gen.enhanced_image()
             self.image_gen.gen_image(prompt=
                                      self.presets.iloc[int(self.selected_preset)]["prompt"])
+            self.image_gen.add_background()
+
         return redirect(url_for('home'))
 
     def handle_selected_image(self):

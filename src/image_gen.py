@@ -26,6 +26,7 @@ class ImageGen:
         image.save(os.path.join(path,
                                 name),
                    "PNG")
+        self.filename = name
         self.app.logger.info("Image saved")
 
     def gen_image(self, prompt) -> str:
@@ -53,7 +54,7 @@ class ImageGen:
             return 1
 
         self.save_image(url=self.image["output_url"],
-                        path=os.path.join("src","static", self.conf.img_folders["dest"]),
+                        path=os.path.join("src", "static", self.conf.img_folders["dest"]),
                         name=f'{datetime.now().strftime("%Y%m%d%H%M%S")}.{self.conf.source_file_type}')
 
         self.app.logger.info(f"Image generated with {prompt}")
@@ -62,7 +63,7 @@ class ImageGen:
 
         image_path = os.path.join("src", "static", self.conf.img_folders["source"], self.filename)
 
-        self.app.logger.info("Remove background: ", image_path)
+        self.app.logger.info(f"Remove background: {image_path}")
         with open(image_path, 'rb') as file:
             input_image = file.read()
 
@@ -76,7 +77,7 @@ class ImageGen:
 
         image_path = os.path.join("src", "static", self.conf.img_folders["cleaned"], self.filename)
 
-        self.app.logger.info("Croping: ", image_path)
+        self.app.logger.info(f"Croping: {image_path}")
 
         image = cv2.imread(image_path)
 
@@ -99,7 +100,7 @@ class ImageGen:
 
         image_path = os.path.join("src", "static", self.conf.img_folders["croped"], self.filename)
 
-        self.app.logger.info("Enhancing image: ", image_path)
+        self.app.logger.info(f"Enhancing image: {image_path}")
 
         try:
             image = requests.post(
@@ -123,3 +124,27 @@ class ImageGen:
                                           self.conf.img_folders["enhanced"]),
                         name=self.filename
                         )
+
+    def add_background(self, border_size=200):
+
+        background_image = Image.open(self.conf.adastra_background)
+        foreground_image = Image.open(os.path.join("src", "static",
+                                                   self.conf.img_folders["dest"],
+                                                   self.filename))
+
+        border_width = background_image.width - 2 * border_size
+        border_height = background_image.height - 2 * border_size
+
+        foreground_resized = foreground_image.resize((border_width, border_height))
+
+        composite_image = Image.new("RGBA", background_image.size)
+        composite_image.paste(background_image, (0, 0))
+
+        paste_position = (border_size, border_size)
+
+        composite_image.paste(foreground_resized, paste_position)
+
+        composite_image.save(os.path.join("src", "static",
+                                          self.conf.img_folders['dest'],
+                                          f"{self.filename}.png"
+                                          ))
