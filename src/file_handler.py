@@ -11,7 +11,7 @@ class Handler(FileSystemEventHandler):
 
     def on_created(self, event):
         self.img_path = event.src_path
-        print(f"Got event for {self.img_path}")
+        self.app.logger.info(f"Got event for {self.img_path}")
 
         with self.app.app_context():
             return redirect(url_for('home'))

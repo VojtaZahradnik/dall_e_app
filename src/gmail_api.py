@@ -8,11 +8,12 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
-
+from flask import Flask
 
 class GmailAPI:
 
-    def __init__(self, conf):
+    def __init__(self, app: Flask, conf):
+        self.app = app
         creds = None
         token_path = os.path.join("src", "creds", "token.json")
         if os.path.exists(token_path):

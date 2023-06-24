@@ -6,43 +6,36 @@ import glob
 import requests
 import rembg
 import cv2
+from flask import Flask
+
 
 class ImageGen:
 
-    def __init__(self, key: str, conf: dict) -> None:
+    def __init__(self, app: Flask, key: str, conf: dict) -> None:
         self.api_key = key
         self.conf = conf
         self.image = None
+        self.app = app
         self.filename = conf.placeholders["before"]
 
     def save_image(self, url: str, path: str, name: str) -> bool:
-        # TODO: try catch return bool - exception handling
-        print("Saving image: ", path + "/"+name)
+        self.app.logger.info(f"Saving image: {self.filename}")
         response = requests.get(url)
         image = Image.open(BytesIO(response.content))
 
-        if not os.path.exists(self.conf.img_folders["dest"]):
-            os.mkdir(self.conf.img_folders["dest"])
-
-        print(os.path.join(path,
-                                f'{name}.{self.conf.source_file_type}'))
-
         image.save(os.path.join(path,
-                                f'{name}.{self.conf.source_file_type}'),
+                                name),
                    "PNG")
-        print("Image saved")
+        self.app.logger.info("Image saved")
 
-    def gen_image(self, prompt, filename: str) -> str:
-        # TODO: exception to bad request, api error, no internet
-        self.filename = filename
-        if "source_enhanced" not in self.filename:
-            self.filename = self.filename.replace("source", "source_enhanced").replace(".jpg",".png")
-        image_path = self.filename
+    def gen_image(self, prompt) -> str:
 
-        print(f"Starting gen. phase with {prompt} on {image_path}")
+        image_path = os.path.join("src", "static", self.conf.img_folders["enhanced"], self.filename)
+
+        self.app.logger.info(f"Starting gen. phase with {prompt} on {image_path}")
         try:
             self.image = requests.post(
-                self.conf["api_name"],
+                self.conf.api_name,
                 files={
                     'image': open(image_path, 'rb'),
                     'text': prompt,
@@ -50,38 +43,40 @@ class ImageGen:
                 headers={'api-key': self.api_key}
             ).json()
         except FileNotFoundError:
-            print(f"{self.filename} not found")
+            self.app.logger.error(f"{self.filename} not found")
         except KeyError as e:
-            print("Api error")
-            print(e)
+            self.app.logger.error("Api error")
+            self.app.logger.error(e)
 
-        print(self.image)
         if not "output_url" in self.image.keys():
-            print("Generating of image failed. Not output url founded")
+            self.app.logger.error("Generating of image failed. Not output url founded")
             return 1
 
-        self.save_image(url = self.image["output_url"],
-                        path = self.conf["img_dest"],
-                        name=f'{datetime.now().strftime("%Y%m%d%H%M%S")}.')
+        self.save_image(url=self.image["output_url"],
+                        path=os.path.join("src","static", self.conf.img_folders["dest"]),
+                        name=f'{datetime.now().strftime("%Y%m%d%H%M%S")}.{self.conf.source_file_type}')
 
-        print(f"Image generated with {prompt}")
+        self.app.logger.info(f"Image generated with {prompt}")
 
-    def remove_bckgr(self, img_path: str):
-        print("Remove background: ", img_path)
-        with open(img_path, 'rb') as file:
+    def remove_bckgr(self):
+
+        image_path = os.path.join("src", "static", self.conf.img_folders["source"], self.filename)
+
+        self.app.logger.info("Remove background: ", image_path)
+        with open(image_path, 'rb') as file:
             input_image = file.read()
 
         output_image = rembg.remove(input_image)
 
         # Save the result
-        with open(img_path.replace("source","source_cleaned"), 'wb') as file:
+        with open(image_path.replace("source", "source_cleaned"), 'wb') as file:
             file.write(output_image)
 
-    def crop_image(self, image_path):
+    def crop_image(self):
 
-        image_path = image_path.replace("source","source_cleaned")
+        image_path = os.path.join("src", "static", self.conf.img_folders["cleaned"], self.filename)
 
-        print("Croping: ", image_path)
+        self.app.logger.info("Croping: ", image_path)
 
         image = cv2.imread(image_path)
 
@@ -100,11 +95,11 @@ class ImageGen:
         # Save the cropped image
         cv2.imwrite(image_path.replace("source_cleaned", "source_croped"), cropped_image)
 
-    def enhanced_image(self, image_path):
+    def enhanced_image(self):
 
-        image_path = image_path.replace("source", "source_croped")
+        image_path = os.path.join("src", "static", self.conf.img_folders["croped"], self.filename)
 
-        print("Enhancing image: ", image_path)
+        self.app.logger.info("Enhancing image: ", image_path)
 
         try:
             image = requests.post(
@@ -115,15 +110,16 @@ class ImageGen:
                 headers={'api-key': self.api_key}
             ).json()
         except FileNotFoundError:
-            print(f"{self.filename} not found")
+            self.app.logger.error(f"{self.filename} not found")
         except KeyError as e:
-            print("Api error")
-            print(e)
+            self.app.logger.error("Api error")
+            self.app.logger.error(e)
         except UnboundLocalError as e:
-            print("Variable not set")
-            print(e)
+            self.app.logger.error("Variable not set")
+            self.app.logger.error(e)
 
-        self.save_image(image["output_url"], name=os.path.split(image_path)[-1].split(".")[0],
-        path = self.conf.img_folders["source"].replace("source","source_enhanced"))
-
-
+        self.save_image(url=image["output_url"],
+                        path=os.path.join("src", "static",
+                                          self.conf.img_folders["enhanced"]),
+                        name=self.filename
+                        )

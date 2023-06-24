@@ -1,7 +1,6 @@
+from src.support import create_folders, load_config, load_presets, write_history
 from flask import Flask, render_template, url_for, redirect, request
-import yaml
 from werkzeug.utils import secure_filename
-from collections import namedtuple
 from image_gen import ImageGen
 from watchdog.observers import Observer
 # from printer import print_image
@@ -9,7 +8,6 @@ from gmail_api import GmailAPI
 import logging
 from logging.handlers import RotatingFileHandler
 import os
-import pandas as pd
 from file_handler import Handler
 from datetime import datetime
 import csv
@@ -23,31 +21,32 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 class AdastraApp:
 
     def __init__(self):
-        self.logger = None
         self.app = Flask(__name__, template_folder='templates', static_folder='static')
         self.setup_routes()
         self.setup_logging()
 
-        self.app.config['SERVER_NAME'] = 'localhost:5001'
-        self.app.config['TEMPLATES_AUTO_RELOAD'] = True
-
         # Initialize other necessary objects and variables
         self.selected_preset = 0
-        self.conf = self.load_config(os.path.join("src", "configs", "conf.yaml"))
-        self.creds = self.load_config(os.path.join("src", "configs", "creds.yaml"))
-        self.presets = self.load_presets(path=
-                                         os.path.join("src",
-                                                      "static",
-                                                      "presets",
-                                                      "presets.csv"))
-        # Create objects from classes
-        self.image_gen = ImageGen(key=self.creds.DEEPAI_API_KEY, conf=self.conf)
-        self.email_sender = GmailAPI(conf=self.conf)
+
+        self.conf = load_config(app=self.app,
+                                path=os.path.join("src", "configs", "conf.yaml"))
+        self.creds = load_config(app=self.app,
+                                 path=os.path.join("src", "configs", "creds.yaml"))
+
+        self.presets = load_presets(app=self.app,
+                                    path=os.path.join(
+                                        "src",
+                                        "static",
+                                        self.conf.img_folders["presets"],
+                                        "presets.csv"))
 
         self.observer_source = None
         self.handler_source = None
         self.observer_dest = None
         self.handler_dest = None
+        self.image_gen = None
+        self.email_sender = None
+        self.logger = None
 
     def setup_routes(self):
         self.app.add_url_rule("/", "home", self.home)
@@ -58,7 +57,7 @@ class AdastraApp:
         self.app.add_url_rule("/generate", "generate", self.generate, methods=["POST"])
         self.app.add_url_rule("/selected-image", "handle_selected_image", self.handle_selected_image, methods=["POST"])
 
-    def run(self, host='localhost', port=5001, debug=True):
+    def run(self, host='localhost', port=5000, debug=True):
         self.app.run(host, port, debug)
 
     def start_observers(self):
@@ -82,34 +81,30 @@ class AdastraApp:
                                                                          self.conf.img_folders["dest"]),
                                     recursive=False)
         self.observer_dest.start()
-        self.app.logger.info(f"Observer for destination folder {os.path.join('src', 'static', self.conf.img_folders['dest'])} started")
+        self.app.logger.info(
+            f"Observer for destination folder {os.path.join('src', 'static', self.conf.img_folders['dest'])} started")
 
     def home(self):
         return render_template('index.html',
-                               name_source=self.handler_source.img_path.replace("src", ""),
-                               name_dest=self.handler_dest.img_path.replace("src", ""))
+                               name_source=self.handler_source.img_path.split("src", 1)[-1],
+                               name_dest=self.handler_dest.img_path.split("src", 1)[-1])
 
     def send_email(self):
         # Handle sending email
         if not os.path.exists("history"):
             os.mkdir("history")
 
-        with open(os.path.join("history", "history.csv"), 'a') as f:
-            writer = csv.writer(f)
-            writer.writerow([request.form.get('firstname'),
-                             request.form.get('lastname'),
-                             request.form.get('email'),
-                             self.image_gen.filename.replace("source_cleaned", "dest")])
-            f.close()
+        write_history(app=self.app,
+                      firstname=request.form.get("firstname"),
+                      lastname=request.form.get("lastname"),
+                      email=request.form.get("email"),
+                      filename=self.image_gen.filename.replace("source_cleaned", "dest"))
 
         if self.image_gen.image and request.form.get('email') != "":
             self.app.logger.info(f"Sending email to {request.form.get('email')} with image "
                                  f"{self.handler_dest.img_path}")
             self.email_sender.send_email(image_path=self.handler_dest.img_path,
                                          email_to=request.form.get('email'))
-            self.handler_source.img_path = self.conf["img_placeholder_before"]
-            self.handler_dest.img_path = self.conf["img_placeholder_edited"]
-            self.image_gen.image = None
 
             return redirect(url_for('home'))
         else:
@@ -118,8 +113,8 @@ class AdastraApp:
             return redirect(url_for('home'))
 
     def delete(self):
-        self.handler_source.img_path = self.conf["img_placeholder_before"]
-        self.handler_dest.img_path = self.conf["img_placeholder_edited"]
+        self.handler_source.img_path = self.conf.placeholders["before"]
+        self.handler_dest.img_path = self.conf.placeholders["edited"]
         self.image_gen.image = None
 
         return redirect(url_for('home'))
@@ -130,32 +125,29 @@ class AdastraApp:
         if self.image_gen.image:
             # print_image(image_path=handler_dest.img_path)
             self.app.logger.info("Printing done")
-            self.handler_source.img_path = self.conf["img_placeholder_before"]
-            self.handler_dest.img_path = self.conf["img_placeholder_edited"]
-
-            self.image_gen.image = None
-
             return redirect(url_for("home"))
         else:
             return redirect(url_for("home"))
 
     def upload(self):
-        self.handler_source.img_path = self.conf["img_placeholder_before"]
-        self.handler_dest.img_path = self.conf["img_placeholder_edited"]
+        self.handler_source.img_path = self.conf.placeholders["before"]
+        self.handler_dest.img_path = self.conf.placeholders["edited"]
         try:
 
             uploaded_file = request.files['uploaded-photo']
-            file_path = os.path.join(self.conf["img_source"], uploaded_file.filename)
+            file_path = os.path.join("src", "static",
+                                     self.conf.img_folders["source"], uploaded_file.filename)
             uploaded_file.save(file_path)
 
-            filename = os.path.join(self.conf["img_source"],
+            filename = os.path.join("src", "static",
+                                    self.conf.img_folders["source"],
                                     secure_filename(request.files['uploaded-photo'].filename))
             self.image_gen.filename = filename
             self.handler_source.img_path = filename
         except AttributeError as e:
             self.app.logger.error(e)
-            self.image_gen.filename = self.conf["img_placeholder_before"]
-            self.handler_source.img_path = self.conf["img_placeholder_edited"]
+            self.image_gen.filename = self.conf.placeholders["before"]
+            self.handler_source.img_path = self.conf.placeholders["edited"]
         self.app.logger.info(f"Selected image: {filename}")
 
         return redirect(url_for('home'))
@@ -164,14 +156,15 @@ class AdastraApp:
         # Handle image generation
         self.app.logger.info(f"Selected image: {self.selected_preset}")
 
-        if self.selected_preset and "placeholder" not in self.handler_source.img_path:
-            self.app.logger.info("Starting generation phase")
-            self.image_gen.remove_bckgr(self.handler_source.img_path)
-            self.image_gen.crop_image(self.handler_source.img_path)
-            self.image_gen.enhanced_image(self.handler_source.img_path)
+        self.image_gen.filename = os.path.basename(self.handler_source.img_path)
+
+        if self.selected_preset and "placeholder" not in self.image_gen.filename :
+            self.app.logger.info(f"Starting generation phase for {self.image_gen.filename}")
+            self.image_gen.remove_bckgr()
+            self.image_gen.crop_image()
+            self.image_gen.enhanced_image()
             self.image_gen.gen_image(prompt=
-                                     self.presets.iloc[int(self.selected_preset)]["prompt"],
-                                     filename=self.handler_source.img_path)
+                                     self.presets.iloc[int(self.selected_preset)]["prompt"])
         return redirect(url_for('home'))
 
     def handle_selected_image(self):
@@ -184,16 +177,6 @@ class AdastraApp:
         self.app.logger.info(f"Selected image from slider: {self.selected_preset}")
 
         return redirect(url_for('home'))
-
-    def load_presets(self, path: str) -> pd.DataFrame:
-        # Load presets from CSV file
-        return pd.read_csv(path, delimiter=";")
-
-    def load_config(self, path: str):
-        # Load configuration from YAML file
-        with open(path) as file:
-            config = yaml.load(file, Loader=yaml.FullLoader)
-            return namedtuple('Struct', config.keys())(*config.values())
 
     def setup_logging(self):
         # Create a file handler for logging
@@ -211,40 +194,15 @@ class AdastraApp:
 
         self.app.logger.info("Logger setup done")
 
-    def create_folders(self):
-        folders = os.listdir("src/static")
-
-        for folder in self.conf.img_folders.values():
-
-            if folder not in folders:
-                self.app.logger.info(f"Creating {folder}")
-                os.mkdir(os.path.join("src", "static", folder))
-
     def initialize_app(self):
-        try:
-            self.conf = self.load_config(os.path.join("src", "configs", "conf.yaml"))
-            self.creds = self.load_config(os.path.join("src", "configs", "creds.yaml"))
-            self.app.logger.info("Configs loaded")
-        except FileNotFoundError as e:
-            self.app.logger.error("Configs not found")
-            self.app.logger.error(e)
 
-            # Load presets
-        try:
-            self.presets = self.load_presets(
-                path=os.path.join("src", "static", self.conf.img_folders["presets"], "presets.csv"))
-            self.app.logger.info("Presets loaded")
-        except FileNotFoundError:
-            self.app.logger.error("Presets CSV file not found")
+        create_folders(app=self.app, conf=self.conf)
 
-        self.create_folders()
-
-        self.image_gen = ImageGen(key=self.creds.DEEPAI_API_KEY, conf=self.conf)
+        self.image_gen = ImageGen(app=self.app, key=self.creds.DEEPAI_API_KEY,
+                                  conf=self.conf)
         self.app.logger.info("Object from ImageGen class created")
 
-        self.app.logger.info("Object from Printer class created")
-
-        self.email_sender = GmailAPI(conf=self.conf)
+        self.email_sender = GmailAPI(app=self.app, conf=self.conf)
         self.app.logger.info("Object from GMailAPI class created")
 
         self.start_observers()
