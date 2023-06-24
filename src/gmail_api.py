@@ -17,13 +17,13 @@ class GmailAPI:
         token_path = os.path.join("src", "creds", "token.json")
         if os.path.exists(token_path):
             creds = Credentials.from_authorized_user_file(token_path,
-                                                          conf["gmail_scopes"])
+                                                          conf.gmail["scopes"])
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    conf["gmail_creds"], conf["gmail_scopes"])
+                    conf.gmail["creds"], conf.gmail["scopes"])
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
             with open(token_path, 'w') as token:
@@ -31,13 +31,13 @@ class GmailAPI:
 
         self.service = build('gmail', 'v1', credentials=creds)
 
-        self.email_from = conf["email_from"]
-        self.email_subject = conf["email_subject"]
+        self.email_from = conf.email["from"]
+        self.email_subject = conf.email["subject"]
 
         self.message = MIMEMultipart()
-        self.message.attach(MIMEText(conf["email_mess"]))
+        self.message.attach(MIMEText(conf.email["mess"]))
 
-        self.message['subject'] = conf["email_subject"]
+        self.message['subject'] = conf.email["subject"]
 
     def send_email(self, image_path: str, email_to: str):
 

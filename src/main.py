@@ -1,7 +1,7 @@
 from flask import Flask, render_template, url_for, redirect, request
 import yaml
 from werkzeug.utils import secure_filename
-
+from collections import namedtuple
 from image_gen import ImageGen
 from watchdog.observers import Observer
 # from printer import print_image
@@ -41,7 +41,7 @@ class AdastraApp:
                                                       "presets",
                                                       "presets.csv"))
         # Create objects from classes
-        self.image_gen = ImageGen(key=self.creds["DEEPAI_API_KEY"], conf=self.conf)
+        self.image_gen = ImageGen(key=self.creds.DEEPAI_API_KEY, conf=self.conf)
         self.email_sender = GmailAPI(conf=self.conf)
 
         self.observer_source = None
@@ -65,17 +65,24 @@ class AdastraApp:
         # Start observers for source and destination folders
         # Source folder
         self.observer_source = Observer()
-        self.handler_source = Handler(app=self.app, placeholder=self.conf["img_placeholder_before"])
-        self.observer_source.schedule(self.handler_source, path=self.conf["img_source"], recursive=False)
+        self.handler_source = Handler(app=self.app, placeholder=self.conf.placeholders["before"])
+        self.observer_source.schedule(self.handler_source, path=os.path.join("src",
+                                                                             "static",
+                                                                             self.conf.img_folders["source"]),
+                                      recursive=False)
         self.observer_source.start()
-        self.app.logger.info(f"Observer for source folder {self.conf['img_source']} started")
+        self.app.logger.info(
+            f"Observer for source folder {os.path.join('src', 'static', self.conf.img_folders['source'])} started")
 
         # Destination folder
         self.observer_dest = Observer()
-        self.handler_dest = Handler(app=self.app, placeholder=self.conf["img_placeholder_edited"])
-        self.observer_dest.schedule(self.handler_dest, path=self.conf["img_dest"], recursive=False)
+        self.handler_dest = Handler(app=self.app, placeholder=self.conf.placeholders["edited"])
+        self.observer_dest.schedule(self.handler_dest, path=os.path.join("src",
+                                                                         "static",
+                                                                         self.conf.img_folders["dest"]),
+                                    recursive=False)
         self.observer_dest.start()
-        self.app.logger.info(f"Observer for destination folder {self.conf['img_dest']} started")
+        self.app.logger.info(f"Observer for destination folder {os.path.join('src', 'static', self.conf.img_folders['dest'])} started")
 
     def home(self):
         return render_template('index.html',
@@ -128,6 +135,8 @@ class AdastraApp:
 
             self.image_gen.image = None
 
+            return redirect(url_for("home"))
+        else:
             return redirect(url_for("home"))
 
     def upload(self):
@@ -182,8 +191,9 @@ class AdastraApp:
 
     def load_config(self, path: str):
         # Load configuration from YAML file
-        with open(path, 'r') as file:
-            return yaml.safe_load(file)
+        with open(path) as file:
+            config = yaml.load(file, Loader=yaml.FullLoader)
+            return namedtuple('Struct', config.keys())(*config.values())
 
     def setup_logging(self):
         # Create a file handler for logging
@@ -199,6 +209,17 @@ class AdastraApp:
         self.app.logger.addHandler(handler)
         self.app.logger.setLevel(logging.DEBUG)
 
+        self.app.logger.info("Logger setup done")
+
+    def create_folders(self):
+        folders = os.listdir("src/static")
+
+        for folder in self.conf.img_folders.values():
+
+            if folder not in folders:
+                self.app.logger.info(f"Creating {folder}")
+                os.mkdir(os.path.join("src", "static", folder))
+
     def initialize_app(self):
         try:
             self.conf = self.load_config(os.path.join("src", "configs", "conf.yaml"))
@@ -210,12 +231,15 @@ class AdastraApp:
 
             # Load presets
         try:
-            self.presets = self.load_presets(path=os.path.join("src", "static", "presets", "presets.csv"))
+            self.presets = self.load_presets(
+                path=os.path.join("src", "static", self.conf.img_folders["presets"], "presets.csv"))
             self.app.logger.info("Presets loaded")
         except FileNotFoundError:
             self.app.logger.error("Presets CSV file not found")
 
-        self.image_gen = ImageGen(key=self.creds["DEEPAI_API_KEY"], conf=self.conf)
+        self.create_folders()
+
+        self.image_gen = ImageGen(key=self.creds.DEEPAI_API_KEY, conf=self.conf)
         self.app.logger.info("Object from ImageGen class created")
 
         self.app.logger.info("Object from Printer class created")

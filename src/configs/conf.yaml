@@ -2,18 +2,23 @@ api_name: "https://api.deepai.org/api/image-editor"
 
 source_file_type: "png"
 
-img_source: "src/static/source"
-img_cleaned: "src/static/source_cleaned"
-img_croped: "src/static/source_croped"
-img_dest: "src/static/dest"
-img_presets: "src/static/presets"
-img_placeholder_before: "static/img/placeholder_before.png"
-img_placeholder_edited: "static/img/placeholder_edited.png"
+img_folders:
+    source: "source"
+    cleaned: "source_cleaned"
+    croped: "source_croped"
+    enhanced: "source_enhanced"
+    dest: "dest"
+    presets: "presets"
 
-email_from: "vojta.zahradnik@gmail.com"
-email_subject: "Adastra AI"
-email_mess: "Adastra AI generated image"
+placeholders:
+    before: "static/img/placeholder_before.png"
+    edited: "static/img/placeholder_edited.png"
 
-gmail_scopes:
-    - "https://www.googleapis.com/auth/gmail.send"
-gmail_creds: "src/creds/creds.json"
+email:
+    from: "vojta.zahradnik@gmail.com"
+    subject: "Adastra AI"
+    mess: "Adastra AI generated image"
+
+gmail:
+    scopes: "https://www.googleapis.com/auth/gmail.send"
+    creds: "src/creds/creds.json"
