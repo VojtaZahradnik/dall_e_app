@@ -1,4 +1,3 @@
-import requests
 import os
 from datetime import datetime
 from PIL import Image
@@ -7,7 +6,6 @@ import glob
 import requests
 import rembg
 import cv2
-import re
 
 class ImageGen:
 
@@ -19,7 +17,7 @@ class ImageGen:
 
     def save_image(self, url: str, path: str, name: str) -> bool:
         # TODO: try catch return bool - exception handling
-        print("Saving image: ", path)
+        print("Saving image: ", path + "/"+name)
         response = requests.get(url)
         image = Image.open(BytesIO(response.content))
 
@@ -34,10 +32,11 @@ class ImageGen:
                    "PNG")
         print("Image saved")
 
-    def gen_image(self, prompt) -> str:
+    def gen_image(self, prompt, filename: str) -> str:
         # TODO: exception to bad request, api error, no internet
+        self.filename = filename
         if "source_enhanced" not in self.filename:
-            self.filename = self.filename.replace("source", "source_enhanced").lower().replace(".jpg",".png")
+            self.filename = self.filename.replace("source", "source_enhanced").replace(".jpg",".png")
         image_path = self.filename
 
         print(f"Starting gen. phase with {prompt} on {image_path}")

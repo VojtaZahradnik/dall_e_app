@@ -86,6 +86,7 @@ class AdastraApp:
         # Handle sending email
         if not os.path.exists("history"):
             os.mkdir("history")
+
         with open(os.path.join("history", "history.csv"), 'a') as f:
             writer = csv.writer(f)
             writer.writerow([request.form.get('firstname'),
@@ -96,7 +97,7 @@ class AdastraApp:
 
         if self.image_gen.image and request.form.get('email') != "":
             self.app.logger.info(f"Sending email to {request.form.get('email')} with image "
-                  f"{self.handler_dest.img_path}")
+                                 f"{self.handler_dest.img_path}")
             self.email_sender.send_email(image_path=self.handler_dest.img_path,
                                          email_to=request.form.get('email'))
             self.handler_source.img_path = self.conf["img_placeholder_before"]
@@ -105,7 +106,7 @@ class AdastraApp:
 
             return redirect(url_for('home'))
         else:
-            self.app.logger.warn("Image is not generated or email is not provided")
+            self.app.logger.warning("Image is not generated or email is not provided")
 
             return redirect(url_for('home'))
 
@@ -160,7 +161,8 @@ class AdastraApp:
             self.image_gen.crop_image(self.handler_source.img_path)
             self.image_gen.enhanced_image(self.handler_source.img_path)
             self.image_gen.gen_image(prompt=
-                                     self.presets.iloc[int(self.selected_preset)]["prompt"])
+                                     self.presets.iloc[int(self.selected_preset)]["prompt"],
+                                     filename=self.handler_source.img_path)
         return redirect(url_for('home'))
 
     def handle_selected_image(self):
@@ -169,6 +171,8 @@ class AdastraApp:
 
         if selected_image:
             self.selected_preset = int(selected_image)
+
+        self.app.logger.info(f"Selected image from slider: {self.selected_preset}")
 
         return redirect(url_for('home'))
 
