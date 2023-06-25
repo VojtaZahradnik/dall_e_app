@@ -16,7 +16,6 @@ class AdastraApp:
 
     def __init__(self):
         self.app = Flask(__name__, template_folder='templates', static_folder='static')
-        self.app.config['SERVER_NAME'] = 'localhost:5001'
         self.app.config['TEMPLATES_AUTO_RELOAD'] = True
         self.setup_routes()
         self.setup_logging()
@@ -28,6 +27,9 @@ class AdastraApp:
                                 path=os.path.join("src", "configs", "conf.yaml"))
         self.creds = load_config(app=self.app,
                                  path=os.path.join("src", "configs", "creds.yaml"))
+
+        self.app.config['SERVER_NAME'] = f'localhost:{self.conf.port}'
+
 
         self.presets = load_presets(app=self.app,
                                     path=os.path.join(
@@ -53,8 +55,8 @@ class AdastraApp:
         self.app.add_url_rule("/generate", "generate", self.generate, methods=["POST"])
         self.app.add_url_rule("/selected-image", "handle_selected_image", self.handle_selected_image, methods=["POST"])
 
-    def run(self, host='localhost', debug=True):
-        self.app.run(host, self.conf.port, debug)
+    def run(self, host='localhost'):
+        self.app.run(host, self.conf.port, self.conf.debug)
 
     def start_observers(self):
         # Start observers for source and destination folders
