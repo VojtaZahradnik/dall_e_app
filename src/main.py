@@ -3,7 +3,7 @@ from flask import Flask, render_template, url_for, redirect, request
 from werkzeug.utils import secure_filename
 from image_gen import ImageGen
 from watchdog.observers import Observer
-# from printer import print_image
+from printer import print_image
 from gmail_api import GmailAPI
 import logging
 from logging.handlers import RotatingFileHandler
@@ -120,9 +120,9 @@ class AdastraApp:
         # Handle printing action
         self.app.logger.info("Printing")
         if self.image_gen.image:
-            # print_image(image_path=os.path.join("src", "static",
-            #                                     self.conf.img_folders['dest_bckg'],
-            #                                     os.path.basename(self.handler_dest.img_path)))
+            print_image(image_path=os.path.join("src", "static",
+                                                self.conf.img_folders['dest_bckg'],
+                                                os.path.basename(self.handler_dest.img_path)))
             self.app.logger.info("Printing done")
             return redirect(url_for("home"))
         else:
