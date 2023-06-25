@@ -125,7 +125,7 @@ class ImageGen:
                         name=self.filename
                         )
 
-    def add_background(self, border_size=200):
+    def add_background(self, border_size=100):
 
         background_image = Image.open(self.conf.adastra_background)
         foreground_image = Image.open(os.path.join("src", "static",
@@ -145,6 +145,6 @@ class ImageGen:
         composite_image.paste(foreground_resized, paste_position)
 
         composite_image.save(os.path.join("src", "static",
-                                          self.conf.img_folders['dest'],
-                                          f"{self.filename}.png"
+                                          self.conf.img_folders['dest_bckg'],
+                                          self.filename
                                           ))

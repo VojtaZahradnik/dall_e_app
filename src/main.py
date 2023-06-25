@@ -11,21 +11,18 @@ import os
 from file_handler import Handler
 from datetime import datetime
 
-app = Flask(__name__, template_folder='templates', static_folder='static')
-app.jinja_env.auto_reload = True
-app.config['SERVER_NAME'] = 'localhost:5000'
-app.config['TEMPLATES_AUTO_RELOAD'] = True
-
 
 class AdastraApp:
 
     def __init__(self):
         self.app = Flask(__name__, template_folder='templates', static_folder='static')
+        self.app.config['SERVER_NAME'] = 'localhost:5001'
+        self.app.config['TEMPLATES_AUTO_RELOAD'] = True
         self.setup_routes()
         self.setup_logging()
 
         # Initialize other necessary objects and variables
-        self.selected_preset = 0
+        self.selected_preset = None
 
         self.conf = load_config(app=self.app,
                                 path=os.path.join("src", "configs", "conf.yaml"))
@@ -100,9 +97,10 @@ class AdastraApp:
                       filename=self.image_gen.filename.replace("source_cleaned", "dest"))
 
         if self.image_gen.image and request.form.get('email') != "":
-            self.app.logger.info(f"Sending email to {request.form.get('email')} with image "
-                                 f"{self.handler_dest.img_path}")
-            self.email_sender.send_email(image_path=self.handler_dest.img_path,
+            self.app.logger.info(f"Sending email to {request.form.get('email')} with image")
+            self.email_sender.send_email(image_path=os.path.join("src", "static",
+                                                                 self.conf.img_folders['dest_bckg'],
+                                                                 os.path.basename(self.handler_dest.img_path)),
                                          email_to=request.form.get('email'))
 
             return redirect(url_for('home'))
@@ -122,7 +120,9 @@ class AdastraApp:
         # Handle printing action
         self.app.logger.info("Printing")
         if self.image_gen.image:
-            # print_image(image_path=handler_dest.img_path)
+            # print_image(image_path=os.path.join("src", "static",
+            #                                     self.conf.img_folders['dest_bckg'],
+            #                                     os.path.basename(self.handler_dest.img_path)))
             self.app.logger.info("Printing done")
             return redirect(url_for("home"))
         else:
@@ -157,7 +157,7 @@ class AdastraApp:
 
         self.image_gen.filename = os.path.basename(self.handler_source.img_path)
 
-        if self.selected_preset and "placeholder" not in self.image_gen.filename :
+        if self.selected_preset is not None and "placeholder" not in self.image_gen.filename:
             self.app.logger.info(f"Starting generation phase for {self.image_gen.filename}")
             self.image_gen.remove_bckgr()
             self.image_gen.crop_image()

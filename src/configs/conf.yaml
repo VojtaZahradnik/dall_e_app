@@ -9,6 +9,7 @@ img_folders:
     croped: "source_croped"
     enhanced: "source_enhanced"
     dest: "dest"
+    dest_bckg: "dest_bckg"
     presets: "presets"
 
 placeholders:
