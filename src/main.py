@@ -1,4 +1,4 @@
-from src.support import create_folders, load_config, load_presets, write_history
+from support import create_folders, load_config, load_presets, write_history
 from flask import Flask, render_template, url_for, redirect, request
 from werkzeug.utils import secure_filename
 from image_gen import ImageGen
