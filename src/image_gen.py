@@ -1,4 +1,3 @@
-import requests
 import os
 from datetime import datetime
 from PIL import Image
@@ -7,43 +6,37 @@ import glob
 import requests
 import rembg
 import cv2
-import re
+from flask import Flask
+
 
 class ImageGen:
 
-    def __init__(self, key: str, conf: dict) -> None:
+    def __init__(self, app: Flask, key: str, conf: dict) -> None:
         self.api_key = key
         self.conf = conf
         self.image = None
-        self.filename = conf["img_placeholder_before"]
+        self.app = app
+        self.filename = conf.placeholders["before"]
 
     def save_image(self, url: str, path: str, name: str) -> bool:
-        # TODO: try catch return bool - exception handling
-        print("Saving image: ", path)
+        self.app.logger.info(f"Saving image: {self.filename}")
         response = requests.get(url)
         image = Image.open(BytesIO(response.content))
 
-        if not os.path.exists(self.conf["img_dest"]):
-            os.mkdir(self.conf["img_dest"])
-
-        print(os.path.join(path,
-                                f'{name}.{self.conf["source_file_type"]}'))
-
         image.save(os.path.join(path,
-                                f'{name}.{self.conf["source_file_type"]}'),
+                                name),
                    "PNG")
-        print("Image saved")
+        self.filename = name
+        self.app.logger.info("Image saved")
 
     def gen_image(self, prompt) -> str:
-        # TODO: exception to bad request, api error, no internet
-        if "source_enhanced" not in self.filename:
-            self.filename = self.filename.replace("source", "source_enhanced").lower().replace(".jpg",".png")
-        image_path = self.filename
 
-        print(f"Starting gen. phase with {prompt} on {image_path}")
+        image_path = os.path.join("src", "static", self.conf.img_folders["enhanced"], self.filename)
+
+        self.app.logger.info(f"Starting gen. phase with {prompt} on {image_path}")
         try:
             self.image = requests.post(
-                self.conf["api_name"],
+                self.conf.api_name,
                 files={
                     'image': open(image_path, 'rb'),
                     'text': prompt,
@@ -51,64 +44,40 @@ class ImageGen:
                 headers={'api-key': self.api_key}
             ).json()
         except FileNotFoundError:
-            print(f"{self.filename} not found")
+            self.app.logger.error(f"{self.filename} not found")
         except KeyError as e:
-            print("Api error")
-            print(e)
+            self.app.logger.error("Api error")
+            self.app.logger.error(e)
 
-        print(self.image)
         if not "output_url" in self.image.keys():
-            print("Generating of image failed. Not output url founded")
+            self.app.logger.error("Generating of image failed. Not output url founded")
             return 1
 
-        self.save_image(url = self.image["output_url"],
-                        path = self.conf["img_dest"],
-                        name=f'{datetime.now().strftime("%Y%m%d%H%M%S")}.')
+        self.save_image(url=self.image["output_url"],
+                        path=os.path.join("src", "static", self.conf.img_folders["dest"]),
+                        name=f'{datetime.now().strftime("%Y%m%d%H%M%S")}.{self.conf.source_file_type}')
 
-        print(f"Image generated with {prompt}")
+        self.app.logger.info(f"Image generated with {prompt}")
 
-    def get_last_png(self) -> str:
+    def remove_bckgr(self):
 
-        if not os.path.exists(self.conf["img_source"]):
-            print(f"Creating source folder in {self.conf['img_source']}")
-            os.mkdir(self.conf["img_source"])
+        image_path = os.path.join("src", "static", self.conf.img_folders["source"], self.filename)
 
-        png_files = glob.glob(os.path.join(self.conf["img_source"],
-                                           f'*.{self.conf["source_file_type"]}'))
-
-        if png_files == []:
-            print(f"No files in source folder {self.conf['img_source']} founded")
-            return []
-
-        print(png_files)
-
-        png_files.sort(key=os.path.getmtime)
-        print(f"Last PNG: {png_files[-1]}")
-        return png_files[-1]
-
-    def get_image(self):
-        response = requests.get(self.image["output_url"])
-        return Image.open(BytesIO(response.content))
-
-    def remove_bckgr(self, img_path: str):
-        print("Remove background: ", img_path)
-        with open(img_path, 'rb') as file:
+        self.app.logger.info(f"Remove background: {image_path}")
+        with open(image_path, 'rb') as file:
             input_image = file.read()
 
         output_image = rembg.remove(input_image)
 
-        # if not os.path.exists(self.conf['img_cleaned']):
-        #     os.mkdir(self.conf['img_cleaned'])
-
         # Save the result
-        with open(img_path.replace("source","source_cleaned"), 'wb') as file:
+        with open(image_path.replace("source", "source_cleaned"), 'wb') as file:
             file.write(output_image)
 
-    def crop_image(self, image_path):
+    def crop_image(self):
 
-        image_path = image_path.replace("source","source_cleaned")
+        image_path = os.path.join("src", "static", self.conf.img_folders["cleaned"], self.filename)
 
-        print("Croping: ", image_path)
+        self.app.logger.info(f"Croping: {image_path}")
 
         image = cv2.imread(image_path)
 
@@ -125,13 +94,13 @@ class ImageGen:
         cropped_image = image[y:y + h, x:x + w]
 
         # Save the cropped image
-        cv2.imwrite(image_path.replace("source_cleaned","source_croped"), cropped_image)
+        cv2.imwrite(image_path.replace("source_cleaned", "source_croped"), cropped_image)
 
-    def enhanced_image(self, image_path):
+    def enhanced_image(self):
 
-        image_path = image_path.replace("source", "source_croped")
+        image_path = os.path.join("src", "static", self.conf.img_folders["croped"], self.filename)
 
-        print("Enhancing image: ", image_path)
+        self.app.logger.info(f"Enhancing image: {image_path}")
 
         try:
             image = requests.post(
@@ -142,16 +111,40 @@ class ImageGen:
                 headers={'api-key': self.api_key}
             ).json()
         except FileNotFoundError:
-            print(f"{self.filename} not found")
+            self.app.logger.error(f"{self.filename} not found")
         except KeyError as e:
-            print("Api error")
-            print(e)
+            self.app.logger.error("Api error")
+            self.app.logger.error(e)
         except UnboundLocalError as e:
-            print("Variable not set")
-            print(e)
+            self.app.logger.error("Variable not set")
+            self.app.logger.error(e)
 
-        self.save_image(image["output_url"], name=os.path.split(image_path)[-1].split(".")[0],
-        path = self.conf["img_source"].replace("source",
-                                                                                    "source_enhanced"))
+        self.save_image(url=image["output_url"],
+                        path=os.path.join("src", "static",
+                                          self.conf.img_folders["enhanced"]),
+                        name=self.filename
+                        )
 
+    def add_background(self, border_size=100):
 
+        background_image = Image.open(self.conf.adastra_background)
+        foreground_image = Image.open(os.path.join("src", "static",
+                                                   self.conf.img_folders["dest"],
+                                                   self.filename))
+
+        border_width = background_image.width - 2 * border_size
+        border_height = background_image.height - 2 * border_size
+
+        foreground_resized = foreground_image.resize((border_width, border_height))
+
+        composite_image = Image.new("RGBA", background_image.size)
+        composite_image.paste(background_image, (0, 0))
+
+        paste_position = (border_size, border_size)
+
+        composite_image.paste(foreground_resized, paste_position)
+
+        composite_image.save(os.path.join("src", "static",
+                                          self.conf.img_folders['dest_bckg'],
+                                          self.filename
+                                          ))
