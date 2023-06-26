@@ -135,26 +135,36 @@ class ImageGen:
                         name=self.filename
                         )
 
-    def add_background(self, border_size=100):
+    def add_background(self, border_size=20):
 
+        # Open the background image and foreground image
         background_image = Image.open(self.conf.adastra_background)
         foreground_image = Image.open(os.path.join("src", "static",
                                                    self.conf.img_folders["dest"],
                                                    self.filename))
 
+        # Calculate the dimensions for resizing the foreground image
         border_width = background_image.width - 2 * border_size
         border_height = background_image.height - 2 * border_size - 200
 
         foreground_resized = foreground_image.resize((border_width, border_height))
 
+        # Create a new composite image with transparent background
         composite_image = Image.new("RGBA", background_image.size)
+
+        # Paste the background image onto the composite image
         composite_image.paste(background_image, (0, 0))
 
-        paste_position = (border_size, border_size)
+        # Calculate the position to paste the resized foreground image at the bottom
+        paste_position = (border_size, background_image.height - border_height - border_size +20)
 
+        # Paste the resized foreground image onto the composite image at the bottom
         composite_image.paste(foreground_resized, paste_position)
 
         composite_image.save(os.path.join("src", "static",
                                           self.conf.img_folders['dest_bckg'],
                                           self.filename
                                           ))
+
+
+

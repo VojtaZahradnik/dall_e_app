@@ -4,7 +4,7 @@ $(document).ready(function() {
     slidesToScroll: 1,
     prevArrow: '<button type="button" class="slick-prev"></button>',
     nextArrow: '<button type="button" class="slick-next"></button>',
-    infinite: true,
+    infinite: false,
     speed: 500
   });
 
