@@ -95,8 +95,6 @@ class AdastraApp:
             os.mkdir("history")
 
         write_history(app=self.app,
-                      firstname=request.form.get("firstname"),
-                      lastname=request.form.get("lastname"),
                       email=request.form.get("email"),
                       filename=self.image_gen.filename.replace("source_cleaned", "dest"))
 
@@ -118,6 +116,7 @@ class AdastraApp:
         self.handler_source.img_path = self.conf.placeholders["before"]
         self.handler_dest.img_path = self.conf.placeholders["edited"]
         self.image_gen.image = None
+        self.label_text = ""
 
         return redirect(url_for('home'))
 
@@ -141,7 +140,7 @@ class AdastraApp:
 
             uploaded_file = request.files['uploaded-photo']
 
-            if "png" in uploaded_file.filename or "jpg" in uploaded_file.filename:
+            if os.path.splitext(uploaded_file.filename)[1].lower() in [".png", ".jpg", ".jpeg"]:
                 file_path = os.path.join("src", "static",
                                          self.conf.img_folders["source"], uploaded_file.filename)
                 uploaded_file.save(file_path)

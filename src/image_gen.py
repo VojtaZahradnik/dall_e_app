@@ -70,7 +70,7 @@ class ImageGen:
         output_image = rembg.remove(input_image)
 
         # Save the result
-        with open(image_path.replace("source", "source_cleaned"), 'wb') as file:
+        with open(os.path.join("src", "static", self.conf.img_folders["cleaned"], self.filename), 'wb') as file:
             file.write(output_image)
 
     def crop_image(self):
@@ -94,7 +94,7 @@ class ImageGen:
         cropped_image = image[y:y + h, x:x + w]
 
         # Save the cropped image
-        cv2.imwrite(image_path.replace("source_cleaned", "source_croped"), cropped_image)
+        cv2.imwrite(os.path.join("src", "static", self.conf.img_folders["croped"], self.filename), cropped_image)
 
     def enhanced_image(self):
 
