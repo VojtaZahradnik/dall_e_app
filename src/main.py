@@ -1,4 +1,4 @@
-from src.support import create_folders, load_config, load_presets, write_history
+from support import create_folders, load_config, load_presets, write_history
 from flask import Flask, render_template, url_for, redirect, request
 from werkzeug.utils import secure_filename
 from image_gen import ImageGen
@@ -16,10 +16,10 @@ class AdastraApp:
 
     def __init__(self):
         self.app = Flask(__name__, template_folder='templates', static_folder='static')
-        self.app.config['SERVER_NAME'] = 'localhost:5001'
-        self.app.config['TEMPLATES_AUTO_RELOAD'] = True
         self.setup_routes()
         self.setup_logging()
+
+        self.label_text = ""
 
         # Initialize other necessary objects and variables
         self.selected_preset = None
@@ -28,6 +28,9 @@ class AdastraApp:
                                 path=os.path.join("src", "configs", "conf.yaml"))
         self.creds = load_config(app=self.app,
                                  path=os.path.join("src", "configs", "creds.yaml"))
+
+        self.app.config['SERVER_NAME'] = f'localhost:{self.conf.port}'
+        self.app.config['TEMPLATES_AUTO_RELOAD'] = True
 
         self.presets = load_presets(app=self.app,
                                     path=os.path.join(
@@ -53,8 +56,8 @@ class AdastraApp:
         self.app.add_url_rule("/generate", "generate", self.generate, methods=["POST"])
         self.app.add_url_rule("/selected-image", "handle_selected_image", self.handle_selected_image, methods=["POST"])
 
-    def run(self, host='localhost', debug=True):
-        self.app.run(host, self.conf.port, debug)
+    def run(self, host='localhost'):
+        self.app.run(host, self.conf.port, self.conf.debug)
 
     def start_observers(self):
         # Start observers for source and destination folders
@@ -83,7 +86,8 @@ class AdastraApp:
     def home(self):
         return render_template('index.html',
                                name_source=self.handler_source.img_path.split("src", 1)[-1],
-                               name_dest=self.handler_dest.img_path.split("src", 1)[-1])
+                               name_dest=self.handler_dest.img_path.split("src", 1)[-1],
+                               label_text = self.label_text)
 
     def send_email(self):
         # Handle sending email
@@ -106,6 +110,7 @@ class AdastraApp:
             return redirect(url_for('home'))
         else:
             self.app.logger.warning("Image is not generated or email is not provided")
+            self.label_text ="Email is not provided"
 
             return redirect(url_for('home'))
 
@@ -120,12 +125,13 @@ class AdastraApp:
         # Handle printing action
         self.app.logger.info("Printing")
         if self.image_gen.image:
-            # print_image(image_path=os.path.join("src", "static",
-            #                                     self.conf.img_folders['dest_bckg'],
-            #                                     os.path.basename(self.handler_dest.img_path)))
+            print_image(image_path=os.path.join("src", "static",
+                                                self.conf.img_folders['dest_bckg'],
+                                                os.path.basename(self.handler_dest.img_path)))
             self.app.logger.info("Printing done")
             return redirect(url_for("home"))
         else:
+            self.label_text = "Image is not generated"
             return redirect(url_for("home"))
 
     def upload(self):
@@ -134,20 +140,25 @@ class AdastraApp:
         try:
 
             uploaded_file = request.files['uploaded-photo']
-            file_path = os.path.join("src", "static",
-                                     self.conf.img_folders["source"], uploaded_file.filename)
-            uploaded_file.save(file_path)
 
-            filename = os.path.join("src", "static",
-                                    self.conf.img_folders["source"],
-                                    secure_filename(request.files['uploaded-photo'].filename))
-            self.image_gen.filename = filename
-            self.handler_source.img_path = filename
+            if "png" in uploaded_file.filename or "jpg" in uploaded_file.filename:
+                file_path = os.path.join("src", "static",
+                                         self.conf.img_folders["source"], uploaded_file.filename)
+                uploaded_file.save(file_path)
+
+                filename = os.path.join("src", "static",
+                                        self.conf.img_folders["source"],
+                                        secure_filename(request.files['uploaded-photo'].filename))
+                self.image_gen.filename = filename
+                self.handler_source.img_path = filename
+
+                self.app.logger.info(f"Selected image: {filename}")
+            else:
+                self.label_text = "File is not an image file"
         except AttributeError as e:
             self.app.logger.error(e)
             self.image_gen.filename = self.conf.placeholders["before"]
             self.handler_source.img_path = self.conf.placeholders["edited"]
-        self.app.logger.info(f"Selected image: {filename}")
 
         return redirect(url_for('home'))
 
@@ -165,6 +176,8 @@ class AdastraApp:
             self.image_gen.gen_image(prompt=
                                      self.presets.iloc[int(self.selected_preset)]["prompt"])
             self.image_gen.add_background()
+        else:
+            self.label_text = "Image not selected"
 
         return redirect(url_for('home'))
 
@@ -181,6 +194,10 @@ class AdastraApp:
 
     def setup_logging(self):
         # Create a file handler for logging
+
+        if not "logs" in os.listdir():
+            os.mkdir("logs")
+
         handler = RotatingFileHandler(f"logs/app_{datetime.now().strftime('%Y%m%d%H')}.log", maxBytes=10000,
                                       backupCount=0)
         handler.setLevel(logging.DEBUG)
