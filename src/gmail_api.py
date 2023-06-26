@@ -14,6 +14,7 @@ class GmailAPI:
 
     def __init__(self, app: Flask, conf):
         self.app = app
+        self.conf = conf
         creds = None
         token_path = os.path.join("src", "creds", "token.json")
         if os.path.exists(token_path):
@@ -35,22 +36,22 @@ class GmailAPI:
         self.email_from = conf.email["from"]
         self.email_subject = conf.email["subject"]
 
-        self.message = MIMEMultipart()
-        self.message.attach(MIMEText(conf.email["mess"]))
-
-        self.message['subject'] = conf.email["subject"]
-
     def send_email(self, image_path: str, email_to: str):
+
+        message = MIMEMultipart()
+        message.attach(MIMEText(self.conf.email["mess"]))
+
+        message['subject'] = self.conf.email["subject"]
 
         with open(image_path, 'rb') as image_file:
             image_data = image_file.read()
 
         image = MIMEImage(image_data)
         image.add_header('Content-Disposition', 'attachment', filename='image.jpg')
-        self.message.attach(image)
+        message.attach(image)
 
-        self.message["to"] = email_to
-        raw_message = base64.urlsafe_b64encode(self.message.as_bytes()).decode()
+        message["to"] = email_to
+        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
         create_message = {'raw': raw_message}
 
         try:
@@ -58,7 +59,7 @@ class GmailAPI:
             self.app.logger.info(f'sent message to {message} Message Id: {message["id"]}')
         except HTTPError as error:
             self.app.logger.error(f'An error occurred: {error}')
-            self.message = None
+            message = None
         except TypeError as error:
             self.app.logger.error("Not valid response")
             self.app.logger.error(error)

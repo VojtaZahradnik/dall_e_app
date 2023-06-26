@@ -25,7 +25,7 @@ def load_config(app: Flask, path: str) -> Struct:
             app.logger.info(f"Config from {path} loaded")
             return namedtuple('Struct', config.keys())(*config.values())
     except FileNotFoundError as e:
-        app.logger.error("Configs not found")
+        app.logger.error("Configs not ffound")
         app.logger.error(e)
 
 
@@ -39,14 +39,12 @@ def load_presets(app: Flask, path: str) -> pd.DataFrame:
         app.logger.error("Presets CSV file not found")
 
 
-def write_history(app: Flask, firstname: str, lastname: str, email: str,
+def write_history(app: Flask,  email: str,
                   filename: str) -> None:
 
     app.logger.info("Writing data into history")
     with open(os.path.join("history", "history.csv"), 'a') as f:
         writer = csv.writer(f)
-        writer.writerow([firstname,
-                         lastname,
-                         email,
+        writer.writerow([email,
                          filename])
         f.close()

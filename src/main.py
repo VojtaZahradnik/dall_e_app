@@ -95,8 +95,6 @@ class AdastraApp:
             os.mkdir("history")
 
         write_history(app=self.app,
-                      firstname=request.form.get("firstname"),
-                      lastname=request.form.get("lastname"),
                       email=request.form.get("email"),
                       filename=self.image_gen.filename.replace("source_cleaned", "dest"))
 
@@ -118,12 +116,14 @@ class AdastraApp:
         self.handler_source.img_path = self.conf.placeholders["before"]
         self.handler_dest.img_path = self.conf.placeholders["edited"]
         self.image_gen.image = None
+        self.label_text = ""
 
         return redirect(url_for('home'))
 
     def send_to_printer(self):
         # Handle printing action
         self.app.logger.info("Printing")
+        self.label_text = ""
         if self.image_gen.image:
             print_image(image_path=os.path.join("src", "static",
                                                 self.conf.img_folders['dest_bckg'],
@@ -135,24 +135,21 @@ class AdastraApp:
             return redirect(url_for("home"))
 
     def upload(self):
+        self.label_text = ""
         self.handler_source.img_path = self.conf.placeholders["before"]
         self.handler_dest.img_path = self.conf.placeholders["edited"]
         try:
 
             uploaded_file = request.files['uploaded-photo']
 
-            if "png" in uploaded_file.filename or "jpg" in uploaded_file.filename:
+            if os.path.splitext(uploaded_file.filename)[1].lower() in [".png", ".jpg", ".jpeg"]:
                 file_path = os.path.join("src", "static",
-                                         self.conf.img_folders["source"], uploaded_file.filename)
+                                         self.conf.img_folders["source"], f"{os.path.splitext(uploaded_file.filename)[0]}.{self.conf.source_file_type}")
                 uploaded_file.save(file_path)
 
-                filename = os.path.join("src", "static",
-                                        self.conf.img_folders["source"],
-                                        secure_filename(request.files['uploaded-photo'].filename))
-                self.image_gen.filename = filename
-                self.handler_source.img_path = filename
+                self.handler_source.img_path = file_path
 
-                self.app.logger.info(f"Selected image: {filename}")
+                self.app.logger.info(f"Selected image: {file_path}")
             else:
                 self.label_text = "File is not an image file"
         except AttributeError as e:
@@ -172,7 +169,7 @@ class AdastraApp:
             self.app.logger.info(f"Starting generation phase for {self.image_gen.filename}")
             self.image_gen.remove_bckgr()
             self.image_gen.crop_image()
-            self.image_gen.enhanced_image()
+            #self.image_gen.enhanced_image()
             self.image_gen.gen_image(prompt=
                                      self.presets.iloc[int(self.selected_preset)]["prompt"])
             self.image_gen.add_background()
