@@ -2,7 +2,6 @@ import os
 from datetime import datetime
 from PIL import Image
 from io import BytesIO
-import glob
 import requests
 import rembg
 import cv2
@@ -31,7 +30,13 @@ class ImageGen:
 
     def gen_image(self, prompt) -> str:
 
-        image_path = os.path.join("src", "static", self.conf.img_folders["enhanced"], self.filename)
+        image_path = os.path.join("src", "static", self.conf.img_folders["croped"], f"{self.filename}.{self.conf.source_file_type}")
+
+        image = Image.open(image_path)
+        new_image = Image.new("RGBA", image.size, "WHITE")  # Create a white rgba background
+        new_image.paste(image, (0, 0),
+                        image)  # Paste the image on the background. Go to the links given below for details.
+        new_image.convert('RGB').save(image_path, "PNG")
 
         self.app.logger.info(f"Starting gen. phase with {prompt} on {image_path}")
         try:
@@ -49,13 +54,18 @@ class ImageGen:
             self.app.logger.error("Api error")
             self.app.logger.error(e)
 
-        if not "output_url" in self.image.keys():
-            self.app.logger.error("Generating of image failed. Not output url founded")
-            return 1
 
-        self.save_image(url=self.image["output_url"],
-                        path=os.path.join("src", "static", self.conf.img_folders["dest"]),
-                        name=f'{datetime.now().strftime("%Y%m%d%H%M%S")}.{self.conf.source_file_type}')
+        try:
+            name = f'{datetime.now().strftime("%Y%m%d%H%M%S")}.{self.conf.source_file_type}'
+            self.save_image(url=self.image["output_url"],
+                            path=os.path.join("src", "static", self.conf.img_folders["dest"]),
+                            name=name)
+
+            self.filename=name
+        except AttributeError:
+            self.app.logger.error("Image not generated properly")
+        except TypeError:
+            self.app.logger.error("Image is not returned")
 
         self.app.logger.info(f"Image generated with {prompt}")
 
@@ -69,36 +79,36 @@ class ImageGen:
 
         output_image = rembg.remove(input_image)
 
+        self.filename = os.path.splitext(self.filename)[0]
+
         # Save the result
-        with open(os.path.join("src", "static", self.conf.img_folders["cleaned"], self.filename), 'wb') as file:
+        with open(os.path.join("src", "static", self.conf.img_folders["cleaned"], f"{self.filename}.{self.conf.source_file_type}"), "wb") as file:
             file.write(output_image)
 
     def crop_image(self):
+        import numpy as np
+        image_path = os.path.join("src", "static", self.conf.img_folders["cleaned"], f"{self.filename}.{self.conf.source_file_type}")
+        image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
-        image_path = os.path.join("src", "static", self.conf.img_folders["cleaned"], self.filename)
+        # Extract the alpha channel
+        alpha = image[:, :, 3]
 
-        self.app.logger.info(f"Croping: {image_path}")
+        # Find the non-transparent regions
+        coords = np.argwhere(alpha > 0)
+        y_min, x_min = coords.min(axis=0)
+        y_max, x_max = coords.max(axis=0)
 
-        image = cv2.imread(image_path)
-
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        _, threshold = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
-
-        contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        largest_contour = max(contours, key=cv2.contourArea)
-
-        x, y, w, h = cv2.boundingRect(largest_contour)
-
-        cropped_image = image[y:y + h, x:x + w]
+        # Crop the image to the non-transparent region
+        cropped_image = image[y_min:y_max + 1, x_min:x_max + 1]
 
         # Save the cropped image
-        cv2.imwrite(os.path.join("src", "static", self.conf.img_folders["croped"], self.filename), cropped_image)
+        cropped_image_path = os.path.join("src", "static", self.conf.img_folders["croped"],
+                                          f"{self.filename}.{self.conf.source_file_type}")
+        cv2.imwrite(cropped_image_path, cropped_image)
 
     def enhanced_image(self):
 
-        image_path = os.path.join("src", "static", self.conf.img_folders["croped"], self.filename)
+        image_path = os.path.join("src", "static", self.conf.img_folders["croped"], f"{self.filename}.{self.conf.source_file_type}")
 
         self.app.logger.info(f"Enhancing image: {image_path}")
 
@@ -133,7 +143,7 @@ class ImageGen:
                                                    self.filename))
 
         border_width = background_image.width - 2 * border_size
-        border_height = background_image.height - 2 * border_size
+        border_height = background_image.height - 2 * border_size - 200
 
         foreground_resized = foreground_image.resize((border_width, border_height))
 
