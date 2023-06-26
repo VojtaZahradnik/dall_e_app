@@ -144,6 +144,7 @@ class ImageGen:
                                                    self.filename))
 
         # Calculate the dimensions for resizing the foreground image
+        border_size = 20  # Adjust border size as needed
         border_width = background_image.width - 2 * border_size
         border_height = background_image.height - 2 * border_size - 200
 
@@ -156,15 +157,17 @@ class ImageGen:
         composite_image.paste(background_image, (0, 0))
 
         # Calculate the position to paste the resized foreground image at the bottom
-        paste_position = (border_size, background_image.height - border_height - border_size +20)
+        paste_position = (border_size, background_image.height - border_height - border_size + 20)
 
         # Paste the resized foreground image onto the composite image at the bottom
         composite_image.paste(foreground_resized, paste_position)
 
-        composite_image.save(os.path.join("src", "static",
-                                          self.conf.img_folders['dest_bckg'],
-                                          self.filename
-                                          ))
+        # Crop the composite image to remove the left and right space borders
+        composite_image_cropped = composite_image.crop(
+            (border_size, 0, composite_image.width - border_size, composite_image.height))
 
+        composite_image_cropped.save(os.path.join("src", "static",
+                                                  self.conf.img_folders['dest_bckg'],
+                                                  self.filename))
 
 
