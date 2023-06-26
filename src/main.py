@@ -194,6 +194,10 @@ class AdastraApp:
 
     def setup_logging(self):
         # Create a file handler for logging
+
+        if not "logs" in os.listdir():
+            os.mkdir("logs")
+
         handler = RotatingFileHandler(f"logs/app_{datetime.now().strftime('%Y%m%d%H')}.log", maxBytes=10000,
                                       backupCount=0)
         handler.setLevel(logging.DEBUG)
