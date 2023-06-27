@@ -135,7 +135,7 @@ class ImageGen:
                         name=self.filename
                         )
 
-    def add_background(self, border_size=20):
+    def add_background(self, border_size=100):
 
         # Open the background image and foreground image
         background_image = Image.open(self.conf.adastra_background)
@@ -144,30 +144,27 @@ class ImageGen:
                                                    self.filename))
 
         # Calculate the dimensions for resizing the foreground image
-        border_size = 20  # Adjust border size as needed
         border_width = background_image.width - 2 * border_size
-        border_height = background_image.height - 2 * border_size - 200
+        border_height = background_image.height - 2 * border_size
 
         foreground_resized = foreground_image.resize((border_width, border_height))
 
-        # Create a new composite image with transparent background
+        # Create a new composite image with transparent background and the same size as the background image
         composite_image = Image.new("RGBA", background_image.size)
 
         # Paste the background image onto the composite image
         composite_image.paste(background_image, (0, 0))
 
-        # Calculate the position to paste the resized foreground image at the bottom
-        paste_position = (border_size, background_image.height - border_height - border_size + 20)
+        # Calculate the position to paste the resized foreground image with the border
+        paste_position = (border_size, border_size)
 
-        # Paste the resized foreground image onto the composite image at the bottom
+        # Paste the resized foreground image onto the composite image with the border
         composite_image.paste(foreground_resized, paste_position)
 
-        # Crop the composite image to remove the left and right space borders
-        composite_image_cropped = composite_image.crop(
-            (border_size, 0, composite_image.width - border_size, composite_image.height))
+        # Save the composite image
+        composite_image.save(os.path.join("src", "static",
+                                          self.conf.img_folders['dest_bckg'],
+                                          self.filename))
 
-        composite_image_cropped.save(os.path.join("src", "static",
-                                                  self.conf.img_folders['dest_bckg'],
-                                                  self.filename))
 
 
