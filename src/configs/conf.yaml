@@ -1,5 +1,5 @@
 api_name: "https://api.deepai.org/api/image-editor"
-port: "5001"
+port: "5000"
 debug: False
 source_file_type: "png"
 adastra_background: "src/static/img/adastra_border.png"
