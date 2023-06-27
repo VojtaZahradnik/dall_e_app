@@ -39,8 +39,8 @@ body {
     flex-wrap: nowrap;
     justify-content: center;
     align-items: center;
-    height: 100vh;
     max-width: 70%;
+    height: 100vh;
     margin: 0 auto;
   }
 
@@ -87,6 +87,9 @@ body {
 
   .img-input-output {
     width: 300px;
+    height: 300px;
+    object-fit: cover;
+    object-position: center top;
   }
 
   .img-arrow {
@@ -146,22 +149,8 @@ body {
   .btn-delete {
     background-color: #F9423A !important;
   }
-  
-  .image-radio {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .image-radio .option {
-    flex-basis: 33%;
-    max-width: 33%;
-    text-align: center;
-  }
 
   .image-radio label {
-    margin-right: 10px;
     cursor: pointer;
   }
   
@@ -192,8 +181,9 @@ body {
   .slick-slide img {
     width: 100%;
     /*height: auto;*/
-    height: 150px;
+    height: 180px;
     object-fit: cover;
+    object-position: center top;
   }
 
   .slick-prev,
@@ -233,11 +223,20 @@ body {
     .img-arrow {
     width: 50px;
     }
+    .slick-slide img {
+      height: 160px;
+    }
   }
 
   @media (max-width: 1440px) {
     .img-input-output, .img-btn {
       width: 250px;
+    }
+    .img-input-output {
+      height: 250px;
+    }
+    .slick-slide img {
+      height: 120px;
     }
   }
 
@@ -256,6 +255,9 @@ body {
   }
   p {
     font-size: 19px;
+   }
+   .slick-slide img {
+    height: 100px;
    }
   }
 
