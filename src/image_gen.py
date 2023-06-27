@@ -135,7 +135,7 @@ class ImageGen:
                         name=self.filename
                         )
 
-    def add_background(self, border_size=100):
+    def add_background(self):
 
         # Open the background image and foreground image
         background_image = Image.open(self.conf.adastra_background)
@@ -144,8 +144,8 @@ class ImageGen:
                                                    self.filename))
 
         # Calculate the dimensions for resizing the foreground image
-        border_width = background_image.width - 2 * border_size
-        border_height = background_image.height - 2 * border_size
+        border_width = background_image.width - 2 * self.conf.border_size
+        border_height = background_image.height - 2 * self.conf.border_size
 
         foreground_resized = foreground_image.resize((border_width, border_height))
 
@@ -156,7 +156,7 @@ class ImageGen:
         composite_image.paste(background_image, (0, 0))
 
         # Calculate the position to paste the resized foreground image with the border
-        paste_position = (border_size, border_size)
+        paste_position = (self.conf.border_size, self.conf.border_size)
 
         # Paste the resized foreground image onto the composite image with the border
         composite_image.paste(foreground_resized, paste_position)
