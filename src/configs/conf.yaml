@@ -4,7 +4,7 @@ debug: False
 source_file_type: "png"
 adastra_background: "src/static/img/adastra_border.png"
 
-border_size: 100
+border_size: 150
 
 img_folders:
     source: "source"
