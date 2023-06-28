@@ -3,7 +3,7 @@ from flask import Flask, render_template, url_for, redirect, request
 from werkzeug.utils import secure_filename
 from image_gen import ImageGen
 from watchdog.observers import Observer
-from printer import print_image
+# from printer import print_image
 from gmail_api import GmailAPI
 import logging
 from logging.handlers import RotatingFileHandler
@@ -174,7 +174,7 @@ class AdastraApp:
                                      self.presets.iloc[int(self.selected_preset)]["prompt"])
             self.image_gen.add_background()
         else:
-            self.label_text = "Image not selected"
+            self.label_text = "Image or template not selected"
 
         return redirect(url_for('home'))
 
