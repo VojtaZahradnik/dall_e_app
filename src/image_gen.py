@@ -145,7 +145,7 @@ class ImageGen:
                                                    self.filename))
 
         # Calculate the dimensions for the enlarged foreground image with padding
-        border_size = 100
+        border_size = self.conf.border_size
         scaled_width = background_image.width - (2 * border_size)
         scaled_height = int((scaled_width / foreground_image.width) * foreground_image.height)
 
