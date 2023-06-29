@@ -32,6 +32,12 @@ class ImageGen:
 
         image_path = os.path.join("src", "static", self.conf.img_folders["croped"], f"{self.filename}.{self.conf.source_file_type}")
 
+        image = Image.open(image_path)
+        new_image = Image.new("RGBA", image.size, "WHITE")  # Create a white rgba background
+        new_image.paste(image, (0, 0),
+                        image)  # Paste the image on the background. Go to the links given below for details.
+        new_image.convert('RGB').save(image_path, "PNG")
+
         self.app.logger.info(f"Starting gen. phase with {prompt} on {image_path}")
         try:
             self.image = requests.post(
