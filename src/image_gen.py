@@ -6,7 +6,7 @@ import requests
 import rembg
 import cv2
 from flask import Flask
-
+import numpy as np
 
 class ImageGen:
 
@@ -87,7 +87,8 @@ class ImageGen:
 
     def crop_image(self):
         import numpy as np
-        image_path = os.path.join("src", "static", self.conf.img_folders["cleaned"], f"{self.filename}.{self.conf.source_file_type}")
+        image_path = os.path.join("src", "static", self.conf.img_folders["cleaned"],
+                                  f"{self.filename}.{self.conf.source_file_type}")
         image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
         # Extract the alpha channel
@@ -143,11 +144,26 @@ class ImageGen:
                                                    self.conf.img_folders["dest"],
                                                    self.filename))
 
-        # Calculate the dimensions for resizing the foreground image
-        border_width = background_image.width - 2 * self.conf.border_size
-        border_height = background_image.height - 2 * self.conf.border_size
+        # Calculate the dimensions for the enlarged foreground image with padding
+        border_size = 100
+        scaled_width = background_image.width - (2 * border_size)
+        scaled_height = int((scaled_width / foreground_image.width) * foreground_image.height)
 
-        foreground_resized = foreground_image.resize((border_width, border_height))
+        # Scale the foreground image to the desired size
+        scaled_foreground = foreground_image.resize((scaled_width, scaled_height), Image.ANTIALIAS)
+
+        # Calculate the dimensions for the padded foreground image
+        padded_width = scaled_width + (2 * border_size)
+        padded_height = scaled_height + (2 * border_size)
+
+        # Create a new enlarged foreground image with transparent background and padding
+        padded_foreground = Image.new("RGBA", (padded_width, padded_height), (0, 0, 0, 0))
+
+        # Calculate the position to paste the scaled foreground image with the padding
+        paste_position = (border_size, border_size)
+
+        # Paste the scaled foreground image onto the padded foreground image at the calculated position
+        padded_foreground.paste(scaled_foreground, paste_position)
 
         # Create a new composite image with transparent background and the same size as the background image
         composite_image = Image.new("RGBA", background_image.size)
@@ -155,12 +171,14 @@ class ImageGen:
         # Paste the background image onto the composite image
         composite_image.paste(background_image, (0, 0))
 
-        # Calculate the position to paste the resized foreground image with the border
-        paste_position = (self.conf.border_size, self.conf.border_size)
+        # Calculate the position to paste the padded foreground image at the center
+        paste_position = ((background_image.width - padded_foreground.width) // 2,
+                          (background_image.height - padded_foreground.height) // 2)
 
-        # Paste the resized foreground image onto the composite image with the border
-        composite_image.paste(foreground_resized, paste_position)
+        # Paste the padded foreground image onto the composite image at the calculated position
+        composite_image.paste(padded_foreground, paste_position, mask=padded_foreground)
 
+        # Paste the scaled foreground image onto the composite image with the border
         # Save the composite image
         composite_image.save(os.path.join("src", "static",
                                           self.conf.img_folders['dest_bckg'],
